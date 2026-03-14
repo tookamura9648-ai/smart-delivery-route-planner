@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Smart Delivery Route Planner logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#17223b"/>
+      <stop offset="100%" stop-color="#0b1020"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6ea8ff"/>
+      <stop offset="100%" stop-color="#48d597"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="url(#accent)" stroke-width="26" opacity="0.95"/>
+  <path d="M162 300c34-64 86-112 161-147" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+  <path d="M329 147l8 56-53-18z" fill="#ffffff"/>
+  <circle cx="185" cy="322" r="23" fill="#48d597"/>
+  <circle cx="325" cy="183" r="23" fill="#6ea8ff"/>
+  <rect x="202" y="344" width="108" height="74" rx="18" fill="#ffffff" opacity="0.95"/>
+  <path d="M225 381h62" stroke="#17223b" stroke-width="14" stroke-linecap="round"/>
+</svg>

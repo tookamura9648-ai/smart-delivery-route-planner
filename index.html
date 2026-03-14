@@ -1,0 +1,2566 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Delivery Route Planner</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0b1020">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<style>
+  /* ===== Opening ===== */
+  #opening{
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(1200px 600px at 50% 0%, rgba(110,168,255,.25), transparent 60%),
+    radial-gradient(800px 500px at 50% 120%, rgba(72,213,151,.15), transparent 60%),
+    linear-gradient(180deg, #17223b 0%, #0f162d 60%, #0b1020 100%);
+
+  overflow: hidden;
+  transition: opacity .7s ease, visibility .7s ease;
+}
+  #opening.hide{
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  
+  .openingInner{
+    position: relative;
+    width: min(78vw, 340px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+  }
+  
+  .openingGlow{
+    position: absolute;
+    width: 70%;
+    height: 12%;
+    bottom: 14%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(110,168,255,.22), rgba(110,168,255,0) 68%);
+    filter: blur(18px);
+    opacity: .7;
+    animation: glowPulse 2.1s ease-in-out infinite;
+  }
+  
+  .openingDog{
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    filter:
+      drop-shadow(0 8px 24px rgba(0,0,0,.50))
+      drop-shadow(0 0 20px rgba(110,168,255,.08));
+  }
+  
+  .openingLogo{
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    transform: translateX(-50%);
+    text-align: center;
+    opacity: 0;
+    animation: logoIn .7s ease forwards;
+    animation-delay: 1.55s;
+  }
+  
+  .openingLogo .main{
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 900;
+    letter-spacing: .08em;
+    color: rgba(233,238,252,.98);
+    text-shadow: 0 6px 20px rgba(0,0,0,.45);
+  }
+  
+  .openingLogo .sub{
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgba(168,178,214,.9);
+    letter-spacing: .16em;
+  }
+  
+  .dogWhole{
+    transform-origin: 50% 78%;
+    animation:
+      dogEnter .6s ease-out both,
+      dogBreath 2.2s ease-in-out infinite .55s,
+      dogStand 1.0s cubic-bezier(.2,.8,.2,1) forwards 1.1s;
+  }
+  
+  .dogHead{
+    transform-origin: 58% 44%;
+    animation:
+      headRest 1.0s ease-in-out infinite .35s,
+      headUp .9s ease forwards 1.15s;
+  }
+  
+  .dogEar{
+    transform-origin: center bottom;
+    animation: earTwitch 2.4s ease-in-out infinite .2s;
+  }
+  
+  .dogTail{
+    transform-origin: 82% 60%;
+    animation:
+      tailIdle 1.6s ease-in-out infinite .3s,
+      tailWake 1.0s ease-in-out forwards 1.18s;
+  }
+  
+  .legFront,
+  .legBack{
+    transform-origin: center top;
+  }
+  
+  .legFront{
+    animation: frontLegStand 1.0s ease forwards 1.12s;
+  }
+  .legBack{
+    animation: backLegStand 1.0s ease forwards 1.16s;
+  }
+  
+  .bodyCore{
+    transform-origin: 52% 56%;
+    animation: bodyRise 1.0s ease forwards 1.1s;
+  }
+  
+  .eyeBlink{
+    animation: eyeBlink 3s ease-in-out infinite .7s;
+  }
+  
+  @keyframes dogEnter{
+    from{ opacity:0; transform: translateY(16px) scale(.96); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+  @keyframes glowPulse{
+    0%,100%{ opacity:.48; transform: translateX(-50%) scale(1); }
+    50%{ opacity:.78; transform: translateX(-50%) scale(1.08); }
+  }
+  @keyframes dogBreath{
+    0%,100%{ transform: translateY(0) scaleY(1); }
+    50%{ transform: translateY(1px) scaleY(1.01); }
+  }
+  @keyframes headRest{
+    0%,100%{ transform: rotate(0deg) translateY(0); }
+    50%{ transform: rotate(1deg) translateY(1px); }
+  }
+  @keyframes earTwitch{
+    0%,86%,100%{ transform: rotate(0deg); }
+    89%{ transform: rotate(-6deg); }
+    92%{ transform: rotate(4deg); }
+  }
+  @keyframes tailIdle{
+    0%,100%{ transform: rotate(4deg); }
+    50%{ transform: rotate(8deg); }
+  }
+  @keyframes dogStand{
+    0%{ transform: translateY(0) scaleY(1); }
+    40%{ transform: translateY(-3px) scaleY(1.02); }
+    100%{ transform: translateY(-12px) scaleY(1.04); }
+  }
+  @keyframes headUp{
+    0%{ transform: rotate(0deg) translate(0,0); }
+    100%{ transform: rotate(-8deg) translate(0,-10px); }
+  }
+  @keyframes tailWake{
+    0%{ transform: rotate(6deg); }
+    30%{ transform: rotate(18deg); }
+    60%{ transform: rotate(-2deg); }
+    100%{ transform: rotate(10deg); }
+  }
+  @keyframes frontLegStand{
+    0%{ transform: rotate(22deg) translateY(0); }
+    100%{ transform: rotate(-8deg) translateY(-10px); }
+  }
+  @keyframes backLegStand{
+    0%{ transform: rotate(26deg) translateY(0); }
+    100%{ transform: rotate(-10deg) translateY(-8px); }
+  }
+  @keyframes bodyRise{
+    0%{ transform: rotate(0deg) translateY(0); }
+    100%{ transform: rotate(-3deg) translateY(-9px); }
+  }
+  @keyframes logoIn{
+    0%{ opacity:0; transform: translateX(-50%) translateY(10px); }
+    100%{ opacity:1; transform: translateX(-50%) translateY(0); }
+  }
+  @keyframes eyeBlink{
+    0%,46%,50%,100%{ opacity:1; }
+    48%{ opacity:.15; }
+  }
+  </style>
+  
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1730;
+      --text:#e9eefc;
+      --muted:#a8b2d6;
+      --line:rgba(255,255,255,.10);
+      --accent:#6ea8ff;
+      --good:#48d597;
+      --danger:#ff6b6b;
+      --warn:#ffcc66;
+      --r:16px;
+    }
+    *{ box-sizing:border-box; }
+    *{
+      writing-mode: horizontal-tb !important;
+      text-orientation: mixed !important;
+    }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background:
+        radial-gradient(1200px 700px at 10% 0%, rgba(110,168,255,.22), transparent 60%),
+        radial-gradient(900px 600px at 90% 0%, rgba(72,213,151,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      padding:10px 12px 12px;
+      background: linear-gradient(to bottom, rgba(11,16,32,.95), rgba(11,16,32,.70));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .title{
+      font-weight:800;
+      letter-spacing:.03em;
+      font-size:16px;
+      margin:0 0 8px;
+      opacity:.95;
+    }
+    .inputGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:8px;
+    }
+    .field{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      padding:10px;
+      background: rgba(18,26,51,.85);
+      border:1px solid var(--line);
+      border-radius: var(--r);
+    }
+    .field input{
+      width:100%;
+      border:0;
+      outline:none;
+      background: transparent;
+      color: var(--text);
+      font-size:16px;
+    }
+    .field input::placeholder{
+      color: rgba(233,238,252,.45);
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:999px;
+      font-weight:700;
+      font-size:14px;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      white-space:nowrap;
+    }
+    .btn:active{ transform:translateY(1px); }
+    .btn.primary{ background: rgba(110,168,255,.18); border-color: rgba(110,168,255,.35); }
+    .btn.good{ background: rgba(72,213,151,.16); border-color: rgba(72,213,151,.35); }
+    .btn.danger{ background: rgba(255,107,107,.12); border-color: rgba(255,107,107,.3); }
+    .btn.warn{ background: rgba(255,204,102,.12); border-color: rgba(255,204,102,.3); }
+    .btn.small{ padding:8px 10px; font-size:13px; }
+    .btn.icon{ width:42px; padding:10px 0; }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .status{
+      margin-top:8px;
+      font-size:12px;
+      color: var(--muted);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background: rgba(255,255,255,.05);
+    }
+    .pill.warn{
+      border-color: rgba(255,204,102,.35);
+      background: rgba(255,204,102,.10);
+      color: rgba(255,235,190,.95);
+    }
+
+    #mapWrap{ padding:12px; }
+    #map{
+      height:46vh;
+      min-height:320px;
+      border-radius: calc(var(--r) + 6px);
+      border:1px solid var(--line);
+      overflow:hidden;
+      box-shadow:0 16px 50px rgba(0,0,0,.35);
+    }
+
+    main{ padding-bottom:18px; }
+    .panel{
+      margin:0 12px 12px;
+      padding:12px;
+      border-radius: calc(var(--r) + 6px);
+      border:1px solid var(--line);
+      background: rgba(18,26,51,.60);
+      backdrop-filter: blur(8px);
+    }
+    .listHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .listHeader .meta{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      max-height:38vh;
+      overflow:auto;
+      padding-right:4px;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      background: rgba(15,23,48,.68);
+      border-radius: var(--r);
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:4px;
+    }
+    .card .name{
+      font-weight:800;
+      font-size:15px;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .card .num{
+      background: var(--accent);
+      color:#000;
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:12px;
+    }
+    .card .addr{
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.4;
+      word-break:break-all;
+      border-left:2px solid var(--line);
+      padding-left:8px;
+    }
+    .card .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:4px;
+    }
+    .card .actions .btn{
+      flex:1;
+      min-width:70px;
+      padding:8px 4px;
+      font-size:12px;
+    }
+    .card.done{
+      opacity:.6;
+      background: rgba(255,255,255,0.05);
+    }
+    .card.done .name{
+      text-decoration: line-through;
+    }
+
+    .hint{
+      margin-top:10px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:14px;
+      z-index:9999;
+      padding:10px 12px;
+      border-radius:999px;
+      background: rgba(0,0,0,.65);
+      border:1px solid rgba(255,255,255,.12);
+      color: var(--text);
+      font-size:13px;
+      display:none;
+      max-width:min(92vw,540px);
+      text-align:center;
+      backdrop-filter: blur(8px);
+      white-space: pre-wrap;
+    }
+
+    .adjustBar{
+      position:fixed;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      z-index:9998;
+      display:none;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px;
+      border-radius: calc(var(--r) + 6px);
+      border:1px solid var(--line);
+      background: rgba(18,26,51,.78);
+      backdrop-filter: blur(10px);
+      box-shadow:0 16px 50px rgba(0,0,0,.35);
+    }
+    .adjustBar .msg{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+  
+
+.deliveryStatus{
+  padding:10px 12px;
+  background:rgba(18,26,51,.85);
+  border-bottom:1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+.statusTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+  color:var(--text);
+  margin-bottom:6px;
+  font-weight:700;
+}
+
+.progressBar{
+  height:7px;
+  background:#2a335a;
+  border-radius:999px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.progressFill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#48d597,#6ea8ff);
+  transition:width .3s ease;
+  border-radius:999px;
+}
+
+.nextStopCard{
+  margin:12px 12px 0;
+  padding:14px;
+  border-radius: calc(var(--r) + 6px);
+  border:1px solid var(--line);
+  background: rgba(18,26,51,.72);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.nextStopLabel{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+  letter-spacing:.08em;
+}
+
+.nextStopName{
+  font-size:20px;
+  font-weight:900;
+  line-height:1.25;
+  color:var(--text);
+}
+
+.nextStopAddr{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.45;
+  word-break:break-all;
+}
+
+.nextStopMeta{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.metaChip{
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.05);
+  font-size:12px;
+  color:var(--text);
+}
+
+.nextStopActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+.nextStopActions .btn{
+  flex:1;
+  min-width:120px;
+}
+
+.parkMarkerWrap{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:rgba(255,204,102,.95);
+  color:#111;
+  display:grid;
+  place-items:center;
+  font-size:18px;
+  font-weight:900;
+  border:1px solid rgba(255,255,255,.35);
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+
+.card.dragging{
+  opacity: .45;
+  transform: scale(.98);
+}
+
+.card.sortable-ghost{
+  opacity: .18;
+}
+
+.dragHandle{
+  cursor: grab;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  font-size: 12px;
+  color: var(--muted);
+  align-self: flex-start;
+}
+
+.dragHandle:active{
+  cursor: grabbing;
+}
+</style>
+</head>
+
+<body>
+  <header>
+
+  <div id="opening" aria-hidden="true">
+  <div class="openingInner">
+    <div class="openingGlow"></div>
+
+    <svg class="openingDog" viewBox="0 0 300 300" role="img" aria-label="Black Shiba Inu opening animation">
+      <g class="dogWhole">
+
+        <!-- しっぽ -->
+        <g class="dogTail">
+          <path d="M223 156
+                   C246 139, 256 120, 247 101
+                   C240 88, 223 86, 215 98
+                   C209 108, 213 118, 224 126
+                   C238 136, 239 147, 223 156Z"
+                fill="#0a0d12"/>
+        </g>
+
+        <!-- 胴体 -->
+        <g class="bodyCore">
+          <ellipse cx="152" cy="166" rx="70" ry="41" fill="#0a0d12"/>
+          <!-- 胸 -->
+          <ellipse cx="124" cy="172" rx="28" ry="26" fill="#151a22"/>
+          <!-- お腹 -->
+          <ellipse cx="162" cy="181" rx="38" ry="18" fill="#11161e"/>
+        </g>
+
+        <!-- 後ろ脚 -->
+        <g class="legBack">
+          <path d="M184 183
+                   C196 194, 197 214, 190 230
+                   L182 246
+                   C179 252, 184 257, 190 255
+                   C196 253, 198 248, 201 242
+                   L210 223
+                   C217 208, 215 189, 200 177Z"
+                fill="#0a0d12"/>
+        </g>
+
+        <!-- 前脚 -->
+        <g class="legFront">
+          <path d="M110 183
+                   C102 193, 101 212, 107 230
+                   L114 247
+                   C117 254, 125 254, 128 248
+                   C130 244, 129 239, 127 234
+                   L121 216
+                   C116 201, 118 188, 127 178Z"
+                fill="#0a0d12"/>
+        </g>
+
+        <!-- 首〜頭 -->
+        <g class="dogHead">
+          <path d="M102 148
+                   C90 138, 85 121, 91 106
+                   C99 87, 121 76, 146 80
+                   C168 83, 184 98, 185 117
+                   C186 136, 175 151, 158 158
+                   C141 165, 117 161, 102 148Z"
+                fill="#0a0d12"/>
+
+          <!-- 耳 -->
+          <g class="dogEar">
+            <path d="M114 90
+                     L126 66
+                     C130 58, 140 61, 141 71
+                     L139 98Z"
+                  fill="#0a0d12"/>
+          </g>
+          <g class="dogEar">
+            <path d="M154 88
+                     L171 67
+                     C177 60, 186 66, 184 75
+                     L175 97Z"
+                  fill="#0a0d12"/>
+          </g>
+
+          <!-- 鼻先 -->
+          <path d="M180 126
+                   C190 126, 198 131, 201 139
+                   C203 147, 198 154, 188 156
+                   C180 157, 171 153, 168 147
+                   C165 139, 170 129, 180 126Z"
+                fill="#090b0f"/>
+
+          <!-- 目 -->
+          <ellipse class="eyeBlink" cx="151" cy="116" rx="3.4" ry="3.4" fill="#dfe7ff"/>
+        </g>
+
+        <!-- 地面影 -->
+        <ellipse cx="152" cy="244" rx="68" ry="14" fill="rgba(0,0,0,.34)"/>
+      </g>
+    </svg>
+
+    <div class="openingLogo">
+      <div class="main">Delivery Route Planner</div>
+      <div class="sub">KOBETSU NAVIGATION</div>
+    </div>
+  </div>
+</div>
+    
+    <div class="title">Delivery Route Planner</div>
+
+    <div class="inputGrid">
+      <div class="field">
+        <input id="zip" type="tel" inputmode="numeric" pattern="[0-9\-]*" placeholder="Postal Code" autocomplete="postal-code">
+        <button class="btn small" id="zipBtn">Fill Address</button>
+      </div>
+
+      <div class="field">
+        <button class="btn icon" id="micName" title="Speech Input (Name)">🎤</button>
+        <input id="name" type="text" placeholder="Name" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <button class="btn icon" id="micAddr" title="Speech Input (Address)">🎤</button>
+        <input id="addr" type="text" placeholder="Address" autocomplete="off">
+      </div>
+
+      
+      <div class="row" style="justify-content:space-between;">
+        <div class="row" style="flex-wrap:wrap;">
+          <button class="btn primary" id="addBtn">+ Add</button>
+          <button class="btn small warn" id="csvBtn">📄 CSV Import</button>
+          <input id="csvFile" type="file" accept=".csv,text/csv" style="display:none;">
+        </div>
+        <div class="row">
+          <button class="btn small" id="locBtn">📍 Current</button>
+          <button class="btn small danger" id="clearBtn">🗑 Clear All</button>
+        </div>
+      </div>
+
+      <div class="status">
+        <div class="pill" id="countPill">Stops: 0</div>
+        <div class="pill" id="speechPill">Speech: Unknown</div>
+        <div class="pill" id="geoPill">Location: Unknown</div>
+        <div class="pill" id="gpsPill">GPS: Idle</div>
+        <div class="pill" id="hdgPill">Heading: —</div>
+      </div>
+    </div>
+  </header>
+
+  <div id="deliveryStatus" class="deliveryStatus">
+    <div class="statusTop">
+      <span id="deliveryMode">In Delivery</span>
+      <span id="remainingCount">Remaining 0</span>
+    </div>
+    <div class="progressBar">
+      <div id="progressFill" class="progressFill"></div>
+    </div>
+  </div>
+
+  <section id="nextStopCard" class="nextStopCard">
+    <div class="nextStopLabel">Next Stop</div>
+    <div id="nextStopName" class="nextStopName">Not Set</div>
+    <div id="nextStopAddr" class="nextStopAddr">No stops available</div>
+
+    <div class="nextStopMeta">
+      <span id="nextStopDistance" class="metaChip">Distance: —</span>
+      <span id="nextStopRemain" class="metaChip">Remaining: 0</span>
+    </div>
+
+    <div class="nextStopActions">
+      <button class="btn primary" id="dashNavBtn">▶ Navigate</button>
+      <button class="btn good" id="dashDoneBtn">✔ Done</button>
+      <button class="btn warn" id="parkBtn">🚗 Save Parking</button>
+      <button class="btn" id="backToParkBtn">↩ Back to Car</button>
+    </div>
+  </section>
+
+  <main>
+    <div id="mapWrap">
+      <div id="map"></div>
+    </div>
+
+    <section class="panel">
+      <div class="listHeader">
+        <div>
+          <div style="font-weight:900;">Stops</div>
+          <div class="meta">Road route / Route optimization / Auto next navigation</div>
+        </div>
+        <div class="row">
+          <button class="btn small" id="optBtn">✨ Optimize</button>
+          <button class="btn small" id="fitBtn">🧭 Fit All</button>
+        </div>
+      </div>
+
+      <div class="list" id="list"></div>
+
+      <div class="hint">
+        Address geocoding: <b>/api/geocode</b><br>
+        Shared entry point lookup: <b>/api/getPoint</b><br>
+        Save adjusted point: <b>/api/savePoint</b><br>
+        Road routing: <b>/api/route</b><br>
+        Road-based optimization: <b>/api/table</b>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="adjustBar" id="adjustBar">
+    <div class="msg" id="adjustMsg">Drag, tap, or long-press the pin to adjust its position → Confirm</div>
+    <div class="row" style="gap:8px;">
+      <button class="btn small" id="cancelAdjustBtn">↩ Cancel</button>
+      <button class="btn small good" id="confirmAdjustBtn">✅ Confirm</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const toastEl = $("toast");
+  let toastTimer = null;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toastEl.style.display = "none";
+    }, 2600);
+  }
+
+  function esc(s){
+    return (s ?? "").toString().replace(/[&<>"']/g, m => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    }[m]));
+  }
+
+  const STORAGE_KEY = "koguchi_delivery_stops_v5";
+  const GEO_CACHE_KEY = "koguchi_geo_cache_v2";
+  const PIN_MEMORY_KEY = "koguchi_pin_memory_v2";
+
+  const ADD_COOLDOWN_MS = 900;
+  let lastAddAt = 0;
+
+  let stops = [];
+
+  let watchId = null;
+  let lastFixAt = 0;
+  let gpsLost = false;
+  let lostNotified = false;
+
+  const GPS_LOST_MS = 12000;
+  const PREDICT_MAX_MS = 90000;
+  const PREDICT_STEP_MS = 1000;
+  const SNAP_ROUTE_M = 55;
+
+  let currentMarker = null;
+  let currentLatLng = null;
+  let lastSpeedMps = null;
+  let headingDeg = null;
+  let predictMarker = null;
+  let predictTimer = null;
+  let lostBase = null;
+
+  let roadRouteLine = null;
+  let roadRoutePtsCache = [];
+
+  let adjustingId = null;
+  let adjustMarker = null;
+  let adjustLatLng = null;
+
+  const adjustBar = $("adjustBar");
+  const adjustMsg = $("adjustMsg");
+  const hdgPill = $("hdgPill");
+
+  const PARK_STORAGE_KEY = "koguchi_park_pos_v1";
+  const SAMPLE_DATA_KEY = "delivery_sample_loaded_v1";
+
+  const NEAR_NOTICE_RADIUS_M = 50;
+  const ARRIVE_RADIUS_M = 20;
+  const ARRIVE_HOLD_MS = 2500;
+  const ARRIVE_MAX_ACC_M = 50;
+  let arriveInsideSince = 0;
+  let lastAutoDoneAt = 0;
+  const AUTO_DONE_COOLDOWN_MS = 12000;
+  let nearNotifiedStopId = null;
+
+  let parkPos = null;
+  let parkMarker = null;
+
+  let sortableListInstance = null;
+
+  function toHalfWidthDigits(s){
+    return (s || "").replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+  }
+
+  function normalizeAddress(a){
+    a = toHalfWidthDigits(a || "");
+    return a
+      .replace(/[‐-–—−]/g, "-")
+      .replace(/[ 　	]+/g, " ")
+      .replace(/\s*,\s*/g, ", ")
+      .replace(/\s*-\s*/g, "-")
+      .replace(/^\s*postal\s*code[:\s-]*/i, "")
+      .trim();
+  }
+
+  function stripBuilding(a){
+    return (a || "")
+      .replace(/(?:,?\s*)(?:apt|apartment|unit|suite|ste|floor|fl|room|rm|building|bldg|tower)\s*[#-]?\s*[A-Za-z0-9-]+.*$/i, "")
+      .replace(/(号室|室|階|F|ビル|マンション|ハイツ|コーポ|アパート|タワー|メゾン|レジデンス|ハウス|コート).*/g, "")
+      .trim();
+  }
+
+  function memKey(address){
+    return normalizeAddress(address).toLowerCase();
+  }
+
+  function loadPinMemory(address){
+    const k = memKey(address);
+    if(!k) return null;
+    try{
+      const mem = JSON.parse(localStorage.getItem(PIN_MEMORY_KEY) || "{}");
+      return mem[k] || null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function savePinMemory(address, lat, lng){
+    const k = memKey(address);
+    if(!k) return;
+    const mem = JSON.parse(localStorage.getItem(PIN_MEMORY_KEY) || "{}");
+    mem[k] = { lat, lng, updatedAt: Date.now() };
+    localStorage.setItem(PIN_MEMORY_KEY, JSON.stringify(mem));
+  }
+
+  function loadGeoCache(){
+    try{
+      return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || "{}") || {};
+    }catch(e){
+      return {};
+    }
+  }
+
+  function saveGeoCache(cache){
+    localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache));
+  }
+
+  function cacheKey(addr){
+    return (addr || "").trim().toLowerCase();
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) stops = JSON.parse(raw) || [];
+    }catch(e){
+      stops = [];
+    }
+  }
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stops));
+  }
+
+  const map = L.map("map", { zoomControl:false }).setView([40.7580, -73.9855], 12);
+  L.control.zoom({ position:"bottomright" }).addTo(map);
+
+  const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(map);
+
+  const gsiStandard = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+    attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html'>GSI Tile (Japan)</a>"
+  });
+
+  const gsiPale = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", {
+    attribution: "<a href='https://maps.gsi.go.jp/development/ichiran.html'>GSI Tile (Japan)</a>"
+  });
+
+  L.control.layers({
+    "OpenStreetMap": osm,
+    "GSI Standard (Japan)": gsiStandard,
+    "GSI Pale (Japan)": gsiPale
+  }, null, { position:"topright" }).addTo(map);
+
+  const markersLayer = L.layerGroup().addTo(map);
+
+  map.on("click", (e) => {
+    if(!adjustingId || !adjustMarker) return;
+    adjustMarker.setLatLng(e.latlng);
+    adjustLatLng = { lat:e.latlng.lat, lng:e.latlng.lng };
+  });
+
+  map.on("contextmenu", (e) => {
+    if(!adjustingId || !adjustMarker) return;
+    adjustMarker.setLatLng(e.latlng);
+    adjustLatLng = { lat:e.latlng.lat, lng:e.latlng.lng };
+  });
+
+  function distanceMeters(a, b){
+    const R = 6371000;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const x = Math.sin(dLat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+
+  function formatDistance(m){
+    if(!(typeof m === "number" && isFinite(m))) return "—";
+    if(m < 1000) return `${Math.round(m)}m`;
+    return `${(m / 1000).toFixed(1)}km`;
+  }
+
+  function loadParkPos(){
+    try{
+      const raw = localStorage.getItem(PARK_STORAGE_KEY);
+      if(raw) parkPos = JSON.parse(raw);
+    }catch(e){
+      parkPos = null;
+    }
+  }
+
+  function renderParkMarker(){
+    if(parkMarker){
+      map.removeLayer(parkMarker);
+      parkMarker = null;
+    }
+    if(!parkPos) return;
+
+    const icon = L.divIcon({
+      className: "",
+      html: `<div class="parkMarkerWrap">🚗</div>`,
+      iconSize: [34,34],
+      iconAnchor: [17,34]
+    });
+
+    parkMarker = L.marker([parkPos.lat, parkPos.lng], { icon })
+      .addTo(map)
+      .bindPopup("Parking Position");
+  }
+
+  function saveParkPos(){
+    if(!currentLatLng){
+      toast("Use this after current location is available");
+      return;
+    }
+    parkPos = {
+      lat: currentLatLng.lat,
+      lng: currentLatLng.lng,
+      savedAt: Date.now()
+    };
+    localStorage.setItem(PARK_STORAGE_KEY, JSON.stringify(parkPos));
+    renderParkMarker();
+    toast("Parking position saved 🚗");
+  }
+
+  function backToPark(){
+    if(!parkPos){
+      toast("No parking position saved");
+      return;
+    }
+
+    const base = new URL("https://www.google.com/maps/dir/");
+    if(currentLatLng){
+      base.pathname = `/maps/dir/${currentLatLng.lat},${currentLatLng.lng}/${parkPos.lat},${parkPos.lng}/`;
+    }else{
+      base.pathname = "/maps/search/";
+      base.searchParams.set("api", "1");
+      base.searchParams.set("query", `${parkPos.lat},${parkPos.lng}`);
+    }
+    window.open(base.toString(), "_blank");
+  }
+
+  function updateDeliveryProgress(){
+    const total = stops.length;
+    const done = stops.filter(s => s.status === "done").length;
+    const remaining = stops.filter(s => s.status === "pending").length;
+    const percent = total ? Math.round(done / total * 100) : 0;
+
+    $("remainingCount").textContent = `Remaining ${remaining}`;
+    $("progressFill").style.width = `${percent}%`;
+  }
+
+  function updateNextStopCard(){
+    const next = getNextPendingStop();
+    const remaining = stops.filter(s => s.status === "pending").length;
+
+    if(!next){
+      $("nextStopName").textContent = "All Deliveries Completed";
+      $("nextStopAddr").textContent = "There are no pending stops";
+      $("nextStopDistance").textContent = "Distance: —";
+      $("nextStopRemain").textContent = `Remaining: 0`;
+      $("dashNavBtn").disabled = true;
+      $("dashDoneBtn").disabled = true;
+      return;
+    }
+
+    $("nextStopName").textContent = next.name || "(No Name)";
+    $("nextStopAddr").textContent = next.address || "";
+    $("nextStopRemain").textContent = `Remaining: ${remaining}`;
+    $("dashNavBtn").disabled = false;
+    $("dashDoneBtn").disabled = false;
+
+    if(currentLatLng){
+      const d = distanceMeters(
+        { lat: currentLatLng.lat, lng: currentLatLng.lng },
+        { lat: next.lat, lng: next.lng }
+      );
+      $("nextStopDistance").textContent = `Distance: ${formatDistance(d)}`;
+    }else{
+      $("nextStopDistance").textContent = "Distance: —";
+    }
+  }
+
+  function refreshDeliveryUI(){
+    updateDeliveryProgress();
+    updateNextStopCard();
+  }
+
+  function notifyNearNextStop(){
+    const next = getNextPendingStop();
+    if(!next || !currentLatLng) return;
+
+    const d = distanceMeters(
+      { lat: currentLatLng.lat, lng: currentLatLng.lng },
+      { lat: next.lat, lng: next.lng }
+    );
+
+    if(d <= NEAR_NOTICE_RADIUS_M){
+      if(nearNotifiedStopId !== next.id){
+        nearNotifiedStopId = next.id;
+        toast(`Arriving soon: ${next.name || "Next Stop"}（${Math.round(d)}m）`);
+      }
+    }
+  }
+
+  function reorderPendingStopsByIds(orderedIds){
+    const pendingMap = new Map(
+      stops.filter(s => s.status === "pending").map(s => [s.id, s])
+    );
+    const done = stops.filter(s => s.status === "done");
+
+    const reorderedPending = orderedIds
+      .map(id => pendingMap.get(id))
+      .filter(Boolean);
+
+    const missing = stops
+      .filter(s => s.status === "pending" && !orderedIds.includes(s.id));
+
+    stops = [...reorderedPending, ...missing, ...done];
+
+    save();
+    redrawMarkers();
+    renderList();
+  }
+
+  function initSortableList(){
+    const list = $("list");
+    if(!list || typeof Sortable === "undefined") return;
+
+    if(sortableListInstance){
+      sortableListInstance.destroy();
+      sortableListInstance = null;
+    }
+
+    sortableListInstance = Sortable.create(list, {
+      animation: 180,
+      handle: ".dragHandle",
+      draggable: '.card[data-status="pending"]',
+      ghostClass: "sortable-ghost",
+      chosenClass: "dragging",
+      onEnd: () => {
+        const pendingCards = [...list.querySelectorAll('.card[data-status="pending"]')];
+        const orderedIds = pendingCards.map(el => el.getAttribute("data-id")).filter(Boolean);
+        reorderPendingStopsByIds(orderedIds);
+        toast("Delivery order updated");
+      }
+    });
+  }
+
+  function snapToRouteIfNear(pos){
+    if(!roadRoutePtsCache || roadRoutePtsCache.length < 2) return pos;
+
+    const lat0 = pos.lat * Math.PI / 180;
+    const kx = 111320 * Math.cos(lat0);
+    const ky = 110540;
+
+    const px = pos.lng * kx;
+    const py = pos.lat * ky;
+
+    let best = null;
+    let bestD2 = Infinity;
+
+    for(let i=0; i<roadRoutePtsCache.length - 1; i++){
+      const a = roadRoutePtsCache[i];
+      const b = roadRoutePtsCache[i+1];
+
+      const ax = a.lng * kx;
+      const ay = a.lat * ky;
+      const bx = b.lng * kx;
+      const by = b.lat * ky;
+
+      const vx = bx - ax;
+      const vy = by - ay;
+      const wx = px - ax;
+      const wy = py - ay;
+
+      const vv = vx*vx + vy*vy;
+      let t = vv ? (wx*vx + wy*vy) / vv : 0;
+      t = Math.max(0, Math.min(1, t));
+
+      const cx = ax + t * vx;
+      const cy = ay + t * vy;
+      const dx = px - cx;
+      const dy = py - cy;
+      const d2 = dx*dx + dy*dy;
+
+      if(d2 < bestD2){
+        bestD2 = d2;
+        best = { x:cx, y:cy, kx, ky };
+      }
+    }
+
+    if(!best) return pos;
+
+    const d = Math.sqrt(bestD2);
+    if(d > SNAP_ROUTE_M) return pos;
+
+    return {
+      lat: best.y / best.ky,
+      lng: best.x / best.kx,
+      snapped: true
+    };
+  }
+
+  function startAdjust(id){
+    const s = stops.find(x => x.id === id);
+    if(!s) return;
+
+    adjustingId = id;
+    adjustLatLng = { lat:s.lat, lng:s.lng };
+
+    if(adjustMarker){
+      map.removeLayer(adjustMarker);
+      adjustMarker = null;
+    }
+
+    adjustMarker = L.marker([s.lat, s.lng], { draggable:true })
+      .addTo(map)
+      .bindPopup("📍 Adjusting (drag / tap / long-press)")
+      .openPopup();
+
+    adjustMarker.on("dragend", () => {
+      const p = adjustMarker.getLatLng();
+      adjustLatLng = { lat:p.lat, lng:p.lng };
+    });
+
+    map.setView([s.lat, s.lng], Math.max(map.getZoom(), 17), { animate:true });
+    adjustBar.style.display = "flex";
+    adjustMsg.textContent = "Drag, tap, or long-press the pin to move it → ✅ Confirm";
+    toast("Entered adjust mode");
+  }
+
+  function cancelAdjust(showToast = true){
+    adjustingId = null;
+    adjustLatLng = null;
+
+    if(adjustMarker){
+      map.removeLayer(adjustMarker);
+      adjustMarker = null;
+    }
+    adjustBar.style.display = "none";
+    if(showToast) toast("Cancelled");
+  }
+
+  async function confirmAdjust(){
+    if(!adjustingId || !adjustLatLng){
+      cancelAdjust(true);
+      return;
+    }
+
+    const s = stops.find(x => x.id === adjustingId);
+    if(!s){
+      cancelAdjust(true);
+      return;
+    }
+
+    s.lat = adjustLatLng.lat;
+    s.lng = adjustLatLng.lng;
+
+    save();
+    savePinMemory(s.address, s.lat, s.lng);
+
+    try{
+      await fetch("/api/savePoint", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          address: (s.address || "").trim(),
+          lat: s.lat,
+          lng: s.lng
+        })
+      });
+      toast("Saved to shared storage");
+    }catch(e){
+      console.log("Shared save failed", e);
+      toast("Failed to save to shared storage (check network/settings)");
+    }
+
+    redrawMarkers();
+    renderList();
+    map.setView([s.lat, s.lng], Math.max(map.getZoom(), 17), { animate:true });
+
+    cancelAdjust(false);
+    toast("Confirmed ✅");
+  }
+
+  function applyQueryToInputs(){
+    try{
+      const u = new URL(location.href);
+      const qName = u.searchParams.get("name") || "";
+      const qAddr = u.searchParams.get("addr") || u.searchParams.get("address") || "";
+      if(!qName && !qAddr) return;
+
+      if(qName) $("name").value = qName;
+      if(qAddr) $("addr").value = qAddr;
+
+      toast("Loaded from QR (tap Add to register)");
+      u.search = "";
+      history.replaceState({}, "", u.toString());
+      $("addr").focus();
+    }catch(e){}
+  }
+
+  async function fetchAddressByZip(zipRaw){
+    const zip = (zipRaw || "").replace(/[^\d]/g, "");
+    if(zip.length !== 7) throw new Error("Postal code must be 7 digits");
+
+    const url = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`;
+    const res = await fetch(url);
+    const j = await res.json();
+
+    if(j.status !== 200 || !j.results || !j.results[0]){
+      throw new Error("Address not found from postal code");
+    }
+
+    const r = j.results[0];
+    return `${r.address1}${r.address2}${r.address3}`;
+  }
+
+  function isValidLatLng(lat, lng){
+    return (
+      typeof lat === "number" &&
+      typeof lng === "number" &&
+      isFinite(lat) &&
+      isFinite(lng) &&
+      lat >= 20 && lat <= 50 &&
+      lng >= 120 && lng <= 155
+    );
+  }
+
+  function normalizeLatLngMaybeSwap(lat, lng){
+    if(isValidLatLng(lat, lng)) return { lat, lng, swapped:false };
+    if(isValidLatLng(lng, lat)) return { lat:lng, lng:lat, swapped:true };
+    return null;
+  }
+
+  async function fetchJsonWithTimeout(url, opts = {}, timeoutMs = 9000){
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort("timeout"), timeoutMs);
+    try{
+      const res = await fetch(url, { ...opts, signal: ac.signal });
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if(!res.ok) throw new Error(`geocode http ${res.status}`);
+      if(!ct.includes("application/json")) throw new Error("geocode not json");
+      return await res.json();
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  function pickBestFeature(features){
+    const scored = features.map(f => {
+      const p = f.properties || {};
+      const s =
+        (typeof p.score === "number" ? p.score : null) ??
+        (typeof p.relevance === "number" ? p.relevance : null) ??
+        (typeof p.confidence === "number" ? p.confidence : null) ??
+        (typeof p.importance === "number" ? p.importance : null) ??
+        0;
+      return { f, s };
+    });
+    scored.sort((a,b) => b.s - a.s);
+    return scored[0]?.f || null;
+  }
+
+  function extractLatLngFromGeocodeResponse(data){
+    if(Array.isArray(data) && data.length){
+      const f = data[0];
+      const coords = f?.geometry?.coordinates;
+      if(Array.isArray(coords) && coords.length >= 2){
+        const lng = Number(coords[0]);
+        const lat = Number(coords[1]);
+        const fixed = normalizeLatLngMaybeSwap(lat, lng);
+        if(fixed) return fixed;
+      }
+    }
+
+    if(data && Array.isArray(data.features) && data.features.length){
+      const best = pickBestFeature(data.features) || data.features[0];
+      const coords = best?.geometry?.coordinates;
+      if(Array.isArray(coords) && coords.length >= 2){
+        const lng = Number(coords[0]);
+        const lat = Number(coords[1]);
+        const fixed = normalizeLatLngMaybeSwap(lat, lng);
+        if(fixed) return fixed;
+      }
+    }
+
+    if(data && (("lat" in data) || ("lng" in data) || ("lon" in data))){
+      const lat = Number(data.lat);
+      const lng = Number(data.lng ?? data.lon);
+      const fixed = normalizeLatLngMaybeSwap(lat, lng);
+      if(fixed) return fixed;
+    }
+
+    return null;
+  }
+
+  async function geocodeAddress(addr){
+    const url = "/api/geocode?q=" + encodeURIComponent(addr);
+    try{
+      const data = await fetchJsonWithTimeout(url, {}, 9000);
+      console.log("GEOCODE raw response:", data);
+      const ll = extractLatLngFromGeocodeResponse(data);
+      if(ll) return { lat: ll.lat, lng: ll.lng };
+      return null;
+    }catch(e){
+      const msg = e?.message || String(e);
+      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
+      if(!retryable) return null;
+
+      try{
+        await new Promise(r => setTimeout(r, 450));
+        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
+        console.log("GEOCODE raw response(retry):", data2);
+        const ll2 = extractLatLngFromGeocodeResponse(data2);
+        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
+      }catch(_e2){}
+      return null;
+    }
+  }
+
+  async function getSharedPoint(address){
+    try{
+      const res = await fetch("/api/getPoint?address=" + encodeURIComponent((address || "").trim()));
+      if(!res.ok) return null;
+      const data = await res.json();
+      if(isValidLatLng(Number(data?.lat), Number(data?.lng))){
+        return { lat:Number(data.lat), lng:Number(data.lng) };
+      }
+      return null;
+    }catch(e){
+      return null;
+    }
+  }
+
+  async function geocodeWithFallback(rawAddress){
+    const cache = loadGeoCache();
+    const a1 = normalizeAddress(rawAddress);
+    if(!a1) return null;
+
+    const remembered = loadPinMemory(a1);
+    if(remembered && isValidLatLng(Number(remembered.lat), Number(remembered.lng))){
+      return { lat:Number(remembered.lat), lng:Number(remembered.lng) };
+    }
+
+    const shared = await getSharedPoint(a1);
+    if(shared) return shared;
+
+    const k1 = cacheKey(a1);
+    if(cache[k1] && isValidLatLng(Number(cache[k1].lat), Number(cache[k1].lng))){
+      return cache[k1];
+    }
+
+    let geo = await geocodeAddress(a1);
+
+    if(!geo){
+      const a2 = stripBuilding(a1);
+      if(a2 && a2 !== a1){
+        const shared2 = await getSharedPoint(a2);
+        if(shared2) return shared2;
+
+        const k2 = cacheKey(a2);
+        if(cache[k2] && isValidLatLng(Number(cache[k2].lat), Number(cache[k2].lng))){
+          geo = cache[k2];
+        }else{
+          geo = await geocodeAddress(a2);
+          if(geo){
+            cache[k2] = geo;
+          }
+        }
+      }
+    }
+
+    if(geo && isValidLatLng(Number(geo.lat), Number(geo.lng))){
+      cache[k1] = geo;
+      saveGeoCache(cache);
+      return geo;
+    }
+
+    return null;
+  }
+
+  function updatePills(){
+    $("countPill").textContent = `Stops: ${stops.length}`;
+  }
+
+  function iconForStop(index, status){
+    const n = index + 1;
+    const bg = status === "done" ? "rgba(255,255,255,.18)" : "rgba(110,168,255,.28)";
+    const bd = status === "done" ? "rgba(255,255,255,.22)" : "rgba(110,168,255,.55)";
+    const color = "rgba(233,238,252,.95)";
+    return L.divIcon({
+      className:"",
+      html: `
+        <div style="
+          width:34px;height:34px;border-radius:999px;
+          display:grid;place-items:center;
+          background:${bg};
+          border:1px solid ${bd};
+          color:${color};
+          font-weight:900;
+          box-shadow:0 10px 30px rgba(0,0,0,.35);
+          backdrop-filter: blur(6px);
+        ">${n}</div>
+      `,
+      iconSize:[34,34],
+      iconAnchor:[17,34]
+    });
+  }
+
+  async function drawRoadRouteLine(){
+    const pending = stops.filter(s => s.status === "pending");
+
+    if(roadRouteLine){
+      map.removeLayer(roadRouteLine);
+      roadRouteLine = null;
+    }
+    roadRoutePtsCache = [];
+
+    if(pending.length < 2) return;
+
+    try{
+      const coords = pending.map(s => `${s.lng},${s.lat}`).join(";");
+      const r = await fetch("/api/route?coords=" + encodeURIComponent(coords));
+      const data = await r.json();
+
+      const coordsArr = data?.routes?.[0]?.geometry?.coordinates;
+      if(!Array.isArray(coordsArr) || coordsArr.length < 2) return;
+
+      const latlngs = coordsArr.map(([lng, lat]) => [lat, lng]);
+      roadRoutePtsCache = coordsArr.map(([lng, lat]) => ({ lat, lng }));
+
+      roadRouteLine = L.polyline(latlngs, {
+        weight:5,
+        opacity:0.95
+      }).addTo(map);
+    }catch(e){
+      console.warn("drawRoadRouteLine failed", e);
+    }
+  }
+
+  function redrawMarkers(){
+    markersLayer.clearLayers();
+
+    stops.forEach((s, i) => {
+      L.marker([s.lat, s.lng], { icon: iconForStop(i, s.status) })
+        .addTo(markersLayer)
+        .bindPopup(`<b>${esc(s.name || "(No Name)")}</b><br>${esc(s.address)}`);
+    });
+
+    renderParkMarker();
+    drawRoadRouteLine();
+  }
+
+  function renderList(){
+    const list = $("list");
+    list.innerHTML = "";
+
+    const pending = stops.filter(s => s.status === "pending");
+    const done = stops.filter(s => s.status === "done");
+    const ordered = [...pending, ...done];
+
+    ordered.forEach((s) => {
+      const idx = stops.findIndex(x => x.id === s.id);
+      const card = document.createElement("div");
+      card.className = "card" + (s.status === "done" ? " done" : "");
+      card.setAttribute("data-id", s.id);
+      card.setAttribute("data-status", s.status);
+
+      card.innerHTML = `
+        ${s.status === "pending" ? `<div class="dragHandle">↕ Reorder</div>` : ""}
+        <div class="name">
+          <span class="num">${idx + 1}</span>
+          ${esc(s.name || "(No Name)")}
+        </div>
+        <div class="addr">${esc(s.address)}</div>
+        <div class="actions">
+          <button class="btn small primary" data-action="nav" data-id="${esc(s.id)}">▶ Navigate</button>
+          <button class="btn small good" data-action="done" data-id="${esc(s.id)}">${s.status === "done" ? "Undo" : "✔ Done"}</button>
+          <button class="btn small" data-action="focus" data-id="${esc(s.id)}">🗺 Map</button>
+          <button class="btn small" data-action="adjust" data-id="${esc(s.id)}">📍 Adjust</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    updatePills();
+    refreshDeliveryUI();
+    initSortableList();
+  }
+
+  function focusStop(id){
+    const s = stops.find(x => x.id === id);
+    if(!s) return;
+    map.setView([s.lat, s.lng], Math.max(map.getZoom(), 16), { animate:true });
+  }
+
+  function fitAll(){
+    const pending = stops.filter(s => s.status === "pending");
+    if(pending.length === 0){
+      toast(stops.length ? "No pending stops" : "No stops");
+      return;
+    }
+
+    const latlngs = pending.map(s => [s.lat, s.lng]);
+    map.fitBounds(L.latLngBounds(latlngs).pad(0.22));
+  }
+
+  function getNextPendingStop(){
+    return stops.find(s => s.status === "pending") || null;
+  }
+
+  function buildCoordsForOSRM(startLatLng, pendingStops){
+    const pts = [
+      { lat:startLatLng.lat, lng:startLatLng.lng },
+      ...pendingStops.map(s => ({ lat:s.lat, lng:s.lng }))
+    ];
+    return pts.map(p => `${p.lng},${p.lat}`).join(";");
+  }
+
+  async function fetchDurationMatrix(coordsStr){
+    const r = await fetch("/api/table?coords=" + encodeURIComponent(coordsStr));
+    const data = await r.json();
+    const d = data?.durations;
+    if(!Array.isArray(d) || !Array.isArray(d[0])) return null;
+    return d;
+  }
+
+  function routeCost(order, D){
+    let sum = 0;
+    for(let i=0; i<order.length - 1; i++){
+      const a = order[i];
+      const b = order[i + 1];
+      const v = D[a]?.[b];
+      if(!(typeof v === "number" && isFinite(v))) return Infinity;
+      sum += v;
+    }
+    return sum;
+  }
+
+  function nearestNeighborPath(D){
+    const n = D.length;
+    const used = new Array(n).fill(false);
+    const path = [0];
+    used[0] = true;
+
+    for(let step=1; step<n; step++){
+      const last = path[path.length - 1];
+      let best = -1;
+      let bestV = Infinity;
+
+      for(let j=1; j<n; j++){
+        if(used[j]) continue;
+        const v = D[last]?.[j];
+        if(typeof v !== "number" || !isFinite(v)) continue;
+        if(v < bestV){
+          bestV = v;
+          best = j;
+        }
+      }
+
+      if(best === -1){
+        for(let j=1; j<n; j++){
+          if(!used[j]){
+            best = j;
+            break;
+          }
+        }
+      }
+
+      used[best] = true;
+      path.push(best);
+    }
+
+    return path;
+  }
+
+  function twoOptOpenPath(path, D, maxIters = 1200){
+    const n = path.length;
+    if(n < 4) return path;
+
+    let bestPath = path.slice();
+    let bestCost = routeCost(bestPath, D);
+    let iter = 0;
+    let improved = true;
+
+    while(improved && iter < maxIters){
+      improved = false;
+      iter++;
+
+      for(let i=1; i<n-2; i++){
+        for(let k=i+1; k<n-1; k++){
+          const newPath = bestPath.slice();
+          for(let a=i, b=k; a<b; a++, b--){
+            const tmp = newPath[a];
+            newPath[a] = newPath[b];
+            newPath[b] = tmp;
+          }
+          const c = routeCost(newPath, D);
+          if(c < bestCost){
+            bestCost = c;
+            bestPath = newPath;
+            improved = true;
+          }
+        }
+      }
+    }
+
+    return bestPath;
+  }
+
+  async function optimizeOrderRoad(){
+    const pending = stops.filter(s => s.status === "pending");
+    const done = stops.filter(s => s.status === "done");
+
+    if(pending.length <= 1){
+      toast("Not enough stops");
+      return;
+    }
+
+    if(!currentLatLng){
+      toast("Please get current location first");
+      return;
+    }
+
+    $("optBtn").disabled = true;
+    $("optBtn").textContent = "... Optimizing";
+
+    try{
+      const coords = buildCoordsForOSRM(currentLatLng, pending);
+      const D = await fetchDurationMatrix(coords);
+
+      if(!D){
+        toast("Failed to get road travel times");
+        return;
+      }
+
+      let path = nearestNeighborPath(D);
+      path = twoOptOpenPath(path, D);
+
+      const orderedPending = path
+        .slice(1)
+        .map(nodeIdx => pending[nodeIdx - 1]);
+
+      stops = [...orderedPending, ...done];
+      save();
+      redrawMarkers();
+      renderList();
+      toast("Optimized using road travel times ✅");
+    }catch(e){
+      console.error(e);
+      toast("Optimization failed");
+    }finally{
+      $("optBtn").disabled = false;
+      $("optBtn").textContent = "✨ Optimize";
+    }
+  }
+
+  async function addStop(){
+    const now = Date.now();
+    if(now - lastAddAt < ADD_COOLDOWN_MS){
+      toast("Please wait a moment before adding again");
+      return;
+    }
+    lastAddAt = now;
+
+    const name = $("name").value.trim();
+    const addressRaw = $("addr").value.trim();
+    if(!addressRaw){
+      toast("Please enter an address");
+      $("addr").focus();
+      return;
+    }
+
+    $("addBtn").disabled = true;
+    $("addBtn").textContent = "... Geocoding";
+
+    try{
+      const remembered = loadPinMemory(addressRaw);
+
+      let lat, lng;
+      if(remembered){
+        lat = Number(remembered.lat);
+        lng = Number(remembered.lng);
+        toast("Used saved entry point");
+      }else{
+        const geo = await geocodeWithFallback(addressRaw);
+        if(!geo){
+          toast("Address not found. Try including city/state, removing apartment or suite details, or using a simpler address.");
+          return;
+        }
+        lat = geo.lat;
+        lng = geo.lng;
+      }
+
+      const id = crypto?.randomUUID
+        ? crypto.randomUUID()
+        : String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+
+      stops.push({
+        id,
+        name: name || "",
+        address: addressRaw,
+        lat,
+        lng,
+        status: "pending",
+        createdAt: Date.now()
+      });
+
+      save();
+      redrawMarkers();
+      renderList();
+
+      map.setView([lat, lng], 16, { animate:true });
+
+      $("name").value = "";
+      $("addr").value = "";
+      $("zip").value = "";
+      $("name").focus();
+
+      if(!remembered) toast("Added");
+    }catch(e){
+      console.error(e);
+      toast(`Geocoding failed.\n${e?.message || "Please check your network connection and settings."}`);
+    }finally{
+      $("addBtn").disabled = false;
+      $("addBtn").textContent = "+ Add";
+    }
+  }
+
+    function parseCsvLine(line){
+    const result = [];
+    let cur = "";
+    let inQuotes = false;
+
+    for(let i=0; i<line.length; i++){
+      const ch = line[i];
+
+      if(ch === '"'){
+        if(inQuotes && line[i+1] === '"'){
+          cur += '"';
+          i++;
+        }else{
+          inQuotes = !inQuotes;
+        }
+      }else if(ch === "," && !inQuotes){
+        result.push(cur);
+        cur = "";
+      }else{
+        cur += ch;
+      }
+    }
+    result.push(cur);
+    return result.map(v => v.trim());
+  }
+
+  function parseCsvText(text){
+    const lines = text
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .filter(line => line.trim() !== "");
+
+    return lines.map(parseCsvLine);
+  }
+
+  function detectCsvColumns(rows){
+    if(!rows.length) return { startIndex:0, nameCol:0, addrCol:1 };
+
+    const header = rows[0].map(v => (v || "").trim().toLowerCase());
+
+    const nameCandidates = ["name", "Name", "recipient", "customer", "氏名", "宛名", "送付先名"];
+    const addrCandidates = ["address", "Address", "delivery address", "street address", "location", "所在地", "届け先Address"];
+
+    let nameCol = -1;
+    let addrCol = -1;
+
+    for(let i=0; i<header.length; i++){
+      const h = header[i];
+      if(nameCol === -1 && nameCandidates.includes(h)) nameCol = i;
+      if(addrCol === -1 && addrCandidates.includes(h)) addrCol = i;
+    }
+
+    if(nameCol !== -1 && addrCol !== -1){
+      return { startIndex:1, nameCol, addrCol };
+    }
+
+    // If there is no header row, treat column 1 as Name and column 2 as Address
+    return { startIndex:0, nameCol:0, addrCol:1 };
+  }
+
+  async function addStopRecord(name, addressRaw){
+    const address = (addressRaw || "").trim();
+    if(!address) return { ok:false, reason:"Address missing" };
+
+    const remembered = loadPinMemory(address);
+    let lat, lng;
+
+    if(remembered){
+      lat = Number(remembered.lat);
+      lng = Number(remembered.lng);
+    }else{
+      const geo = await geocodeWithFallback(address);
+      if(!geo){
+        return { ok:false, reason:"Geocoding failed", name, address };
+      }
+      lat = geo.lat;
+      lng = geo.lng;
+    }
+
+    const id = crypto?.randomUUID
+      ? crypto.randomUUID()
+      : String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+
+    stops.push({
+      id,
+      name: (name || "").trim(),
+      address,
+      lat,
+      lng,
+      status: "pending",
+      createdAt: Date.now()
+    });
+
+    return { ok:true };
+  }
+
+  async function importCsvFile(file){
+    if(!file){
+      toast("Please select a CSV file");
+      return;
+    }
+
+    const originalBtnText = $("csvBtn").textContent;
+    $("csvBtn").disabled = true;
+    $("csvBtn").textContent = "... Importing";
+
+    try{
+      let text = await file.text();
+
+      // Attempt Shift_JIS decoding when the uploaded CSV is not UTF-8
+      if(text.includes(" ")){
+        const buf = await file.arrayBuffer();
+        try{
+          text = new TextDecoder("shift-jis").decode(buf);
+        }catch(e){}
+      }
+
+      const rows = parseCsvText(text);
+      if(!rows.length){
+        toast("CSV is empty");
+        return;
+      }
+
+      const { startIndex, nameCol, addrCol } = detectCsvColumns(rows);
+
+      let success = 0;
+      let fail = 0;
+      const failedRows = [];
+
+      for(let i=startIndex; i<rows.length; i++){
+        const row = rows[i];
+        const name = row[nameCol] ?? "";
+        const address = row[addrCol] ?? "";
+
+        if(!address.trim()) continue;
+
+        const result = await addStopRecord(name, address);
+        if(result.ok){
+          success++;
+        }else{
+          fail++;
+          failedRows.push(`Row ${i+1}: ${address}`);
+        }
+      }
+
+      save();
+      redrawMarkers();
+      renderList();
+
+      if(success > 0 && stops.length){
+        const pending = stops.filter(s => s.status === "pending");
+        if(pending.length){
+          const latlngs = pending.map(s => [s.lat, s.lng]);
+          map.fitBounds(L.latLngBounds(latlngs).pad(0.22));
+        }
+      }
+
+      if(fail === 0){
+        toast(`CSV import complete ✅ ${success} added`);
+      }else{
+        console.warn("CSV import failed rows:", failedRows);
+        toast(`CSV import complete: success ${success} / failed ${fail}`);
+      }
+
+    }catch(e){
+      console.error(e);
+      toast("CSV import failed");
+    }finally{
+      $("csvBtn").disabled = false;
+      $("csvBtn").textContent = originalBtnText;
+      $("csvFile").value = "";
+    }
+  }
+
+  function setDone(id){
+    const s = stops.find(x => x.id === id);
+    if(!s) return;
+
+    const becameDone = (s.status !== "done");
+    s.status = (s.status === "done") ? "pending" : "done";
+
+    save();
+    redrawMarkers();
+    renderList();
+
+    if(becameDone && s.status === "done"){
+      const next = getNextPendingStop();
+      if(next){
+        toast("Starting navigation to the next stop");
+        openNav(next.id);
+      }else{
+        toast("All deliveries completed 🎉");
+      }
+    }
+  }
+
+  function openNav(id){
+    const s = stops.find(x => x.id === id);
+    if(!s) return;
+
+    const base = new URL("https://www.google.com/maps/dir/");
+    if(currentLatLng){
+      base.pathname = `/maps/dir/${currentLatLng.lat},${currentLatLng.lng}/${s.lat},${s.lng}/`;
+    }else{
+      base.pathname = "/maps/search/";
+      base.searchParams.set("api", "1");
+      base.searchParams.set("query", `${s.lat},${s.lng}`);
+    }
+    window.open(base.toString(), "_blank");
+  }
+
+  function clearAll(){
+    if(!confirm("Delete all stops?")) return;
+    stops = [];
+    save();
+    redrawMarkers();
+    renderList();
+    toast("Cleared all stops (saved entry points remain)");
+  }
+
+  function setGpsPill(text, isWarn = false){
+    const el = $("gpsPill");
+    el.textContent = text;
+    el.classList.toggle("warn", !!isWarn);
+  }
+
+  function updateHeadingPill(){
+    if(headingDeg == null){
+      hdgPill.textContent = "Heading: —";
+      return;
+    }
+    hdgPill.textContent = `Heading: ${Math.round(headingDeg)}°`;
+  }
+
+  function showPredictMarker(latlng){
+    if(!predictMarker){
+      predictMarker = L.circleMarker([latlng.lat, latlng.lng], {
+        radius: 7,
+        weight: 2,
+        opacity: 0.9,
+        fillOpacity: 0.12,
+        dashArray: "6 6"
+      }).addTo(map).bindPopup("Estimated position (GPS signal lost)");
+    }else{
+      predictMarker.setLatLng([latlng.lat, latlng.lng]);
+    }
+  }
+
+  function hidePredictMarker(){
+    if(predictMarker){
+      map.removeLayer(predictMarker);
+      predictMarker = null;
+    }
+  }
+
+  function tryPredict(now){
+    if(!lostBase) return;
+
+    const elapsed = now - lostBase.t;
+    if(elapsed <= 0) return;
+
+    if(elapsed > PREDICT_MAX_MS){
+      hidePredictMarker();
+      return;
+    }
+
+    const sp = lostBase.speed;
+    const hdg = lostBase.heading;
+
+    if(!(typeof sp === "number" && sp > 0.6 && typeof hdg === "number")){
+      hidePredictMarker();
+      return;
+    }
+
+    const dist = Math.min(sp * (elapsed / 1000), 1200);
+    const rad = hdg * Math.PI / 180;
+    const dNorth = Math.cos(rad) * dist;
+    const dEast = Math.sin(rad) * dist;
+
+    const lat = lostBase.lat + (dNorth / 110540);
+    const lng = lostBase.lng + (dEast / (111320 * Math.cos(lostBase.lat * Math.PI / 180)));
+
+    const snapped = snapToRouteIfNear({ lat, lng });
+    showPredictMarker(snapped);
+  }
+
+  function checkGpsLossAndPredict(){
+    if(!watchId) return;
+
+    const now = Date.now();
+    const dt = now - lastFixAt;
+
+    if(lastFixAt === 0){
+      setGpsPill("GPS: Monitoring...");
+      return;
+    }
+
+    if(dt >= GPS_LOST_MS){
+      if(!gpsLost){
+        gpsLost = true;
+        lostBase = currentLatLng ? {
+          lat: currentLatLng.lat,
+          lng: currentLatLng.lng,
+          t: now,
+          speed: lastSpeedMps,
+          heading: headingDeg
+        } : null;
+
+        setGpsPill("GPS: Lost", true);
+        if(!lostNotified){
+          lostNotified = true;
+          toast("GPS lost (e.g. tunnel). Map and stops remain visible");
+          if(navigator.vibrate) navigator.vibrate([180, 120, 180]);
+        }
+      }else{
+        setGpsPill("GPS: Lost", true);
+      }
+
+      tryPredict(now);
+      return;
+    }
+
+    if(!gpsLost){
+      setGpsPill("GPS: OK");
+    }
+  }
+
+  function checkAutoArrival(posAccuracyM){
+    const now = Date.now();
+    if(now - lastAutoDoneAt < AUTO_DONE_COOLDOWN_MS) return;
+
+    if(typeof posAccuracyM === "number" && posAccuracyM > ARRIVE_MAX_ACC_M){
+      arriveInsideSince = 0;
+      return;
+    }
+
+    const next = getNextPendingStop();
+    if(!next || !currentLatLng){
+      arriveInsideSince = 0;
+      return;
+    }
+
+    const d = distanceMeters(
+      { lat: currentLatLng.lat, lng: currentLatLng.lng },
+      { lat: next.lat, lng: next.lng }
+    );
+
+    if(d <= ARRIVE_RADIUS_M){
+      if(!arriveInsideSince) arriveInsideSince = now;
+
+      if(now - arriveInsideSince >= ARRIVE_HOLD_MS){
+        arriveInsideSince = 0;
+        lastAutoDoneAt = now;
+        nearNotifiedStopId = next.id;
+        toast(`Arrived ✅ (${Math.round(d)}m)`);
+        setDone(next.id);
+        if(navigator.vibrate) navigator.vibrate([120, 80, 120]);
+      }
+    }else{
+      arriveInsideSince = 0;
+    }
+  }
+
+  function onPos(pos){
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    lastFixAt = Date.now();
+
+    if(typeof pos.coords.speed === "number" && !Number.isNaN(pos.coords.speed)){
+      lastSpeedMps = pos.coords.speed;
+    }
+
+    const raw = { lat, lng };
+    const snapped = snapToRouteIfNear(raw);
+    currentLatLng = { lat: snapped.lat, lng: snapped.lng };
+
+    if(currentMarker){
+      currentMarker.setLatLng([currentLatLng.lat, currentLatLng.lng]);
+    }else{
+      currentMarker = L.circleMarker([currentLatLng.lat, currentLatLng.lng], {
+        radius: 8,
+        weight: 2,
+        opacity: 1,
+        fillOpacity: .35
+      }).addTo(map).bindPopup("Current Location");
+    }
+
+    if(gpsLost){
+      gpsLost = false;
+      lostNotified = false;
+      setGpsPill("GPS: Restored");
+      toast("GPS restored");
+      if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
+      hidePredictMarker();
+    }else{
+      setGpsPill("GPS: OK");
+    }
+
+    $("geoPill").textContent = "Location: OK";
+    updateNextStopCard();
+    notifyNearNextStop();
+    checkAutoArrival(pos.coords.accuracy);
+  }
+
+  function onPosErr(err){
+    console.warn(err);
+    $("geoPill").textContent = "Location: Error";
+    setGpsPill("GPS: Error", true);
+    toast("Failed to get location (check permission/signal/power settings)");
+  }
+
+  function startWatch(){
+    if(!navigator.geolocation){
+      $("geoPill").textContent = "Location: Unsupported";
+      setGpsPill("GPS: Unsupported", true);
+      toast("Location is not available");
+      return;
+    }
+
+    if(watchId){
+      toast("GPS monitoring is already active");
+      return;
+    }
+
+    setGpsPill("GPS: Starting...");
+    $("geoPill").textContent = "Location: Monitoring...";
+
+    watchId = navigator.geolocation.watchPosition(onPos, onPosErr, {
+      enableHighAccuracy:true,
+      timeout:12000,
+      maximumAge:2000
+    });
+
+    if(!predictTimer){
+      predictTimer = setInterval(checkGpsLossAndPredict, PREDICT_STEP_MS);
+    }
+  }
+
+  function initCompass(){
+    const handler = (e) => {
+      let h = null;
+      if(typeof e.webkitCompassHeading === "number"){
+        h = e.webkitCompassHeading;
+      }else if(typeof e.alpha === "number"){
+        h = 360 - e.alpha;
+      }
+
+      if(h == null || Number.isNaN(h)) return;
+      headingDeg = (h + 360) % 360;
+      updateHeadingPill();
+    };
+
+    if(typeof DeviceOrientationEvent !== "undefined" &&
+       typeof DeviceOrientationEvent.requestPermission === "function"){
+      window.__requestCompassPermission = async () => {
+        try{
+          const p = await DeviceOrientationEvent.requestPermission();
+          if(p === "granted"){
+            window.addEventListener("deviceorientation", handler, true);
+            toast("Heading sensor enabled");
+          }else{
+            toast("Heading sensor permission denied");
+          }
+        }catch(e){
+          toast("Failed to enable heading sensor");
+        }
+      };
+    }else{
+      window.addEventListener("deviceorientationabsolute", handler, true);
+      window.addEventListener("deviceorientation", handler, true);
+    }
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recog = null;
+
+  function initSpeech(){
+    if(!SpeechRecognition){
+      $("speechPill").textContent = "Speech: Unsupported";
+      return;
+    }
+    $("speechPill").textContent = "Speech: OK";
+    recog = new SpeechRecognition();
+    recog.lang = "en-US";
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+  }
+
+  function speakToInput(inputEl){
+    if(!recog){
+      toast("Speech input is unavailable (Chrome recommended)");
+      return;
+    }
+    try{ recog.abort(); }catch(e){}
+    toast("Please speak...");
+    recog.onresult = (ev) => {
+      const text = ev.results[0][0].transcript || "";
+      const cur = inputEl.value.trim();
+      inputEl.value = cur ? (cur + " " + text) : text;
+      toast("Input added");
+    };
+    recog.onerror = () => toast("Speech input failed (check permission/HTTPS)");
+    recog.start();
+  }
+
+
+  async function loadSampleData(){
+    const alreadyLoaded = localStorage.getItem(SAMPLE_DATA_KEY);
+    if(alreadyLoaded === "1") return;
+    if(stops.length > 0) return;
+
+    const sampleStops = [
+      { name: "Sample Stop 1", address: "Times Square, New York, NY, USA" },
+      { name: "Sample Stop 2", address: "Grand Central Terminal, New York, NY, USA" },
+      { name: "Sample Stop 3", address: "Empire State Building, New York, NY, USA" },
+      { name: "Sample Stop 4", address: "Brooklyn Bridge, New York, NY, USA" },
+      { name: "Sample Stop 5", address: "One World Trade Center, New York, NY, USA" }
+    ];
+
+    let success = 0;
+
+    for(const item of sampleStops){
+      const result = await addStopRecord(item.name, item.address);
+      if(result.ok) success++;
+    }
+
+    if(success > 0){
+      save();
+      redrawMarkers();
+      renderList();
+
+      const pending = stops.filter(s => s.status === "pending");
+      if(pending.length){
+        const latlngs = pending.map(s => [s.lat, s.lng]);
+        map.fitBounds(L.latLngBounds(latlngs).pad(0.22));
+      }
+
+      localStorage.setItem(SAMPLE_DATA_KEY, "1");
+      toast(`Sample data loaded (${success} stops)`);
+    }
+  }
+
+  async function registerSW(){
+    if(!("serviceWorker" in navigator)) return;
+    try{
+      await navigator.serviceWorker.register("/sw.js");
+    }catch(e){
+      console.warn("SW register failed", e);
+    }
+  }
+
+    function hideOpening(){
+    const el = $("opening");
+    if(!el) return;
+    el.classList.add("hide");
+    setTimeout(() => {
+      if(el && el.parentNode) el.parentNode.removeChild(el);
+    }, 800);
+  }
+
+  function initOpening(){
+    const openingShown = sessionStorage.getItem("openingShown");
+    if(openingShown === "1"){
+      hideOpening();
+      return;
+    }
+
+    sessionStorage.setItem("openingShown", "1");
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait = reduceMotion ? 500 : 2600;
+
+    setTimeout(() => {
+      hideOpening();
+    }, wait);
+  }
+
+  $("addBtn").addEventListener("click", addStop);
+  $("clearBtn").addEventListener("click", clearAll);
+  $("fitBtn").addEventListener("click", fitAll);
+  $("optBtn").addEventListener("click", optimizeOrderRoad);
+
+  $("cancelAdjustBtn").addEventListener("click", () => cancelAdjust(false));
+  $("confirmAdjustBtn").addEventListener("click", confirmAdjust);
+
+  $("name").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") $("addr").focus();
+  });
+  $("addr").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") addStop();
+  });
+  $("zip").addEventListener("keydown", (e) => {
+    if(e.key === "Enter") $("zipBtn").click();
+  });
+
+  $("zipBtn").addEventListener("click", async () => {
+    const zip = $("zip").value.trim();
+    if(!zip){
+      toast("Please enter a postal code");
+      $("zip").focus();
+      return;
+    }
+
+    $("zipBtn").disabled = true;
+    try{
+      const addr = await fetchAddressByZip(zip);
+      const cur = $("addr").value.trim();
+      $("addr").value = cur ? (addr + " " + cur) : addr;
+      toast("Address filled. Please enter street number/details.");
+      $("addr").focus();
+    }catch(e){
+      toast(e.message || "Postal code lookup failed");
+    }finally{
+      $("zipBtn").disabled = false;
+    }
+  });
+
+  $("micName").addEventListener("click", () => speakToInput($("name")));
+  $("micAddr").addEventListener("click", () => speakToInput($("addr")));
+
+  $("list").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if(!btn) return;
+
+    const id = btn.getAttribute("data-id");
+    const action = btn.getAttribute("data-action");
+    if(!id || !action) return;
+
+    if(action === "nav") openNav(id);
+    if(action === "done") setDone(id);
+    if(action === "focus") focusStop(id);
+    if(action === "adjust") startAdjust(id);
+      
+  });
+
+  
+  
+
+  $("locBtn").addEventListener("click", async () => {
+    if(typeof window.__requestCompassPermission === "function"){
+      await window.__requestCompassPermission();
+      window.__requestCompassPermission = null;
+    }
+    startWatch();
+    toast("GPS monitoring started");
+  });
+  
+  $("csvBtn").addEventListener("click", () => {
+    $("csvFile").click();
+  });
+
+  $("csvFile").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    await importCsvFile(file);
+  });
+
+  $("dashNavBtn").addEventListener("click", () => {
+    const next = getNextPendingStop();
+    if(next) openNav(next.id);
+  });
+
+  $("dashDoneBtn").addEventListener("click", () => {
+    const next = getNextPendingStop();
+    if(next) setDone(next.id);
+  });
+
+  $("parkBtn").addEventListener("click", saveParkPos);
+  $("backToParkBtn").addEventListener("click", backToPark);
+    
+  load();
+  loadParkPos();
+  initSpeech();
+  initCompass();
+  redrawMarkers();
+  renderList();
+
+  if(SpeechRecognition) $("speechPill").textContent = "Speech: OK";
+  else $("speechPill").textContent = "Speech: Unsupported";
+
+  if(navigator.geolocation) $("geoPill").textContent = "Location: Not Ready";
+  else $("geoPill").textContent = "Location: Unsupported";
+
+  setGpsPill("GPS: Idle");
+  updateHeadingPill();
+
+  applyQueryToInputs();
+  registerSW();
+  initOpening();
+  loadSampleData();
+})();
+</script>
+</body>
+</html>
+
+
+
