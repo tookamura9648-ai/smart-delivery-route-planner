@@ -2,32 +2,31 @@
 
 ⭐ If you like this project, please give it a star!
 
-🚚 **Plan delivery routes in seconds.**
+A lightweight route optimization web app for delivery drivers.
 
-Smart Delivery Route Planner is a lightweight web app for delivery drivers and couriers.
-Import stops from CSV, automatically optimize the route, adjust it manually with drag & drop, and launch Google Maps navigation instantly.
-
-Works directly in the browser and can be installed on your phone as a **PWA (Progressive Web App)**.
+Import delivery stops from CSV, automatically optimize the route, adjust the order manually with drag & drop, and launch Google Maps navigation instantly.
 
 ---
 
 ## 🌍 Live Demo
 
-👉 https://tookamura9648-ai.github.io/smart-delivery-route-planner/
+Try the app here:
 
-Open the demo on your smartphone and try planning a delivery route.
+https://tookamura9648-ai.github.io/smart-delivery-route-planner/
+
+Open it on your smartphone for the best experience.
 
 ---
 
-## ✨ Features
+## 🚚 Features
 
-* 📄 **CSV Import** – Add many delivery stops at once
-* ⚡ **Auto Route Optimization** – Calculate an efficient delivery order
-* ✋ **Manual Reordering** – Drag & drop stops to adjust the route
-* 🧭 **Google Maps Navigation** – Launch navigation with one tap
-* 📱 **Mobile Friendly** – Works on smartphone and desktop
-* 📦 **PWA Installable** – Add the app to your home screen
-* 🎤 **Voice Address Input** – Quickly add stops by voice
+• CSV bulk import of delivery stops
+• Automatic route optimization
+• Drag & drop manual route adjustment
+• One-tap Google Maps navigation
+• Works on smartphone and desktop
+• Installable as a Progressive Web App (PWA)
+• Voice input for fast address entry
 
 ---
 
@@ -51,7 +50,7 @@ Clone the repository
 git clone https://github.com/tookamura9648-ai/smart-delivery-route-planner
 ```
 
-Open
+Open the app
 
 ```
 index.html
@@ -80,24 +79,25 @@ Import the CSV file to add multiple delivery stops instantly.
 
 ## 🛠 Tech Stack
 
-* Leaflet
-* OpenStreetMap
-* JavaScript
-* Progressive Web App (PWA)
+Leaflet
+OpenStreetMap
+JavaScript
+Progressive Web App (PWA)
 
 ---
 
 ## 👨‍💼 Use Cases
 
-* Delivery drivers
-* Courier services
-* Small logistics teams
-* Independent contractors
-* Field service workers
+Delivery drivers
+Courier services
+Small logistics teams
+Independent contractors
+Field service workers
 
 ---
 
 ## 📜 License
 
 MIT License
+
 
