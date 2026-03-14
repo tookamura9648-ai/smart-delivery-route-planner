@@ -1,5 +1,7 @@
 # Smart Delivery Route Planner
 
+⭐ If you like this project, please give it a star!
+
 🚚 **Plan delivery routes in seconds.**
 
 Smart Delivery Route Planner is a lightweight web app for delivery drivers and couriers.
