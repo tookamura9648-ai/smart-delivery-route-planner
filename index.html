@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Delivery Route Planner</title>
 
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0b1020">
+  <link rel="apple-touch-icon" href="./icon-192.png">
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -607,7 +608,7 @@
   <div class="openingInner">
     <div class="openingGlow"></div>
 
-    <svg class="openingDog" viewBox="0 0 300 300" role="img" aria-label="Black Shiba Inu opening animation">
+    <svg class="openingDog" viewBox="0 0 300 300" role="img" aria-label="黒い柴犬のオープニング">
       <g class="dogWhole">
 
         <!-- しっぽ -->
@@ -766,6 +767,7 @@
 
     <div class="nextStopActions">
       <button class="btn primary" id="dashNavBtn">▶ Navigate</button>
+      <button class="btn" id="dashMultiNavBtn">🛣 Multi-Stop Nav</button>
       <button class="btn good" id="dashDoneBtn">✔ Done</button>
       <button class="btn warn" id="parkBtn">🚗 Save Parking</button>
       <button class="btn" id="backToParkBtn">↩ Back to Car</button>
@@ -780,23 +782,25 @@
     <section class="panel">
       <div class="listHeader">
         <div>
-          <div style="font-weight:900;">Stops</div>
-          <div class="meta">Road route / Route optimization / Auto next navigation</div>
+          <div style="font-weight:900;">Stops <span style="font-size:12px;color:var(--good);font-weight:800;margin-left:6px;">Auto + Manual</span></div>
+          <div class="meta">Auto-optimize with road travel times, then manually fine-tune with drag & drop</div>
         </div>
         <div class="row">
-          <button class="btn small" id="optBtn">✨ Optimize</button>
+          <button class="btn small" id="optBtn">✨ Auto Optimize</button>
           <button class="btn small" id="fitBtn">🧭 Fit All</button>
+          <button class="btn small" id="multiNavBtn">🛣 Multi-Stop Nav</button>
         </div>
       </div>
 
       <div class="list" id="list"></div>
+      <div class="hint" style="margin-top:10px;">Tip: Use <b>Auto Optimize</b> first, then drag any pending stop to adjust the order manually. <b>Multi-Stop Nav</b> uses the current stop order.</div>
 
       <div class="hint">
         Address geocoding: <b>/api/geocode</b><br>
-        Shared entry point lookup: <b>/api/getPoint</b><br>
+        Shared saved point lookup: <b>/api/getPoint</b><br>
         Save adjusted point: <b>/api/savePoint</b><br>
-        Road routing: <b>/api/route</b><br>
-        Road-based optimization: <b>/api/table</b>
+        Road route line: <b>/api/route</b><br>
+        Road travel-time optimization: <b>/api/table</b>
       </div>
     </section>
   </main>
@@ -899,17 +903,19 @@
     a = toHalfWidthDigits(a || "");
     return a
       .replace(/[‐-–—−]/g, "-")
-      .replace(/[ 　	]+/g, " ")
-      .replace(/\s*,\s*/g, ", ")
+      .replace(/[ 　]+/g, " ")
+      .replace(/(〒\s*\d{3}-?\d{4})/g, "")
+      .replace(/([0-9]+)\s*丁目/g, "$1丁目")
+      .replace(/([0-9]+)\s*番地/g, "$1番地")
+      .replace(/([0-9]+)\s*号/g, "$1号")
       .replace(/\s*-\s*/g, "-")
-      .replace(/^\s*postal\s*code[:\s-]*/i, "")
+      .replace(/(号室|室|階|F).*/g, "")
       .trim();
   }
 
   function stripBuilding(a){
     return (a || "")
-      .replace(/(?:,?\s*)(?:apt|apartment|unit|suite|ste|floor|fl|room|rm|building|bldg|tower)\s*[#-]?\s*[A-Za-z0-9-]+.*$/i, "")
-      .replace(/(号室|室|階|F|ビル|マンション|ハイツ|コーポ|アパート|タワー|メゾン|レジデンス|ハウス|コート).*/g, "")
+      .replace(/(ビル|マンション|ハイツ|コーポ|アパート|タワー|メゾン|レジデンス|ハウス|コート).*/g, "")
       .trim();
   }
 
@@ -965,7 +971,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stops));
   }
 
-  const map = L.map("map", { zoomControl:false }).setView([40.7580, -73.9855], 12);
+  const map = L.map("map", { zoomControl:false }).setView([35.02, 135.86], 12);
   L.control.zoom({ position:"bottomright" }).addTo(map);
 
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -1098,14 +1104,16 @@
       $("nextStopDistance").textContent = "Distance: —";
       $("nextStopRemain").textContent = `Remaining: 0`;
       $("dashNavBtn").disabled = true;
+      $("dashMultiNavBtn").disabled = true;
       $("dashDoneBtn").disabled = true;
       return;
     }
 
     $("nextStopName").textContent = next.name || "(No Name)";
     $("nextStopAddr").textContent = next.address || "";
-    $("nextStopRemain").textContent = `Remaining: ${remaining}`;
+    $("nextStopRemain").textContent = `残り：${remaining}件`;
     $("dashNavBtn").disabled = false;
+    $("dashMultiNavBtn").disabled = false;
     $("dashDoneBtn").disabled = false;
 
     if(currentLatLng){
@@ -1180,7 +1188,7 @@
         const pendingCards = [...list.querySelectorAll('.card[data-status="pending"]')];
         const orderedIds = pendingCards.map(el => el.getAttribute("data-id")).filter(Boolean);
         reorderPendingStopsByIds(orderedIds);
-        toast("Delivery order updated");
+        toast("Manual order updated");
       }
     });
   }
@@ -1785,13 +1793,13 @@
       save();
       redrawMarkers();
       renderList();
-      toast("Optimized using road travel times ✅");
+      toast("Route optimized ✅ You can still drag stops to fine-tune the order.");
     }catch(e){
       console.error(e);
       toast("Optimization failed");
     }finally{
       $("optBtn").disabled = false;
-      $("optBtn").textContent = "✨ Optimize";
+      $("optBtn").textContent = "✨ Auto Optimize";
     }
   }
 
@@ -1806,7 +1814,7 @@
     const name = $("name").value.trim();
     const addressRaw = $("addr").value.trim();
     if(!addressRaw){
-      toast("Please enter an address");
+      toast("Addressを入力してください");
       $("addr").focus();
       return;
     }
@@ -1825,7 +1833,7 @@
       }else{
         const geo = await geocodeWithFallback(addressRaw);
         if(!geo){
-          toast("Address not found. Try including city/state, removing apartment or suite details, or using a simpler address.");
+          toast("Addressが見つかりませんでした。\n・県市から入れる\n・建物名/部屋番号を外す\nを試してください");
           return;
         }
         lat = geo.lat;
@@ -1860,7 +1868,7 @@
       if(!remembered) toast("Added");
     }catch(e){
       console.error(e);
-      toast(`Geocoding failed.\n${e?.message || "Please check your network connection and settings."}`);
+      toast(`座標化に失敗しました。\n${e?.message || "通信/設定を確認"}`);
     }finally{
       $("addBtn").disabled = false;
       $("addBtn").textContent = "+ Add";
@@ -1908,8 +1916,8 @@
 
     const header = rows[0].map(v => (v || "").trim().toLowerCase());
 
-    const nameCandidates = ["name", "Name", "recipient", "customer", "氏名", "宛名", "送付先名"];
-    const addrCandidates = ["address", "Address", "delivery address", "street address", "location", "所在地", "届け先Address"];
+    const nameCandidates = ["name", "Name", "氏名", "宛名", "送付先名"];
+    const addrCandidates = ["address", "Address", "所在地", "届け先Address"];
 
     let nameCol = -1;
     let addrCol = -1;
@@ -1924,13 +1932,13 @@
       return { startIndex:1, nameCol, addrCol };
     }
 
-    // If there is no header row, treat column 1 as Name and column 2 as Address
+    // ヘッダが無い場合は 1列目=Name 2列目=Address とみなす
     return { startIndex:0, nameCol:0, addrCol:1 };
   }
 
   async function addStopRecord(name, addressRaw){
     const address = (addressRaw || "").trim();
-    if(!address) return { ok:false, reason:"Address missing" };
+    if(!address) return { ok:false, reason:"Addressなし" };
 
     const remembered = loadPinMemory(address);
     let lat, lng;
@@ -1941,7 +1949,7 @@
     }else{
       const geo = await geocodeWithFallback(address);
       if(!geo){
-        return { ok:false, reason:"Geocoding failed", name, address };
+        return { ok:false, reason:"座標化失敗", name, address };
       }
       lat = geo.lat;
       lng = geo.lng;
@@ -1977,7 +1985,7 @@
     try{
       let text = await file.text();
 
-      // Attempt Shift_JIS decoding when the uploaded CSV is not UTF-8
+      // UTF-8で文字化けするCSV対策（Shift_JIS想定）
       if(text.includes(" ")){
         const buf = await file.arrayBuffer();
         try{
@@ -2009,7 +2017,7 @@
           success++;
         }else{
           fail++;
-          failedRows.push(`Row ${i+1}: ${address}`);
+          failedRows.push(`${i+1}行目: ${address}`);
         }
       }
 
@@ -2079,6 +2087,68 @@
     window.open(base.toString(), "_blank");
   }
 
+  function getPendingStopsForNavigation(){
+    return stops.filter(s => s.status === "pending");
+  }
+
+  function buildMultiStopUrl(orderedStops){
+    if(!Array.isArray(orderedStops) || orderedStops.length === 0) return null;
+
+    const base = new URL("https://www.google.com/maps/dir/");
+    base.searchParams.set("api", "1");
+    base.searchParams.set("travelmode", "driving");
+    base.searchParams.set("dir_action", "navigate");
+
+    const first = orderedStops[0];
+    const last = orderedStops[orderedStops.length - 1];
+
+    if(currentLatLng){
+      base.searchParams.set("origin", `${currentLatLng.lat},${currentLatLng.lng}`);
+      base.searchParams.set("destination", `${last.lat},${last.lng}`);
+      if(orderedStops.length > 1){
+        const waypoints = orderedStops.slice(0, -1).map(s => `${s.lat},${s.lng}`).join("|");
+        if(waypoints) base.searchParams.set("waypoints", waypoints);
+      }
+    }else{
+      base.searchParams.set("origin", `${first.lat},${first.lng}`);
+      base.searchParams.set("destination", `${last.lat},${last.lng}`);
+      if(orderedStops.length > 2){
+        const waypoints = orderedStops.slice(1, -1).map(s => `${s.lat},${s.lng}`).join("|");
+        if(waypoints) base.searchParams.set("waypoints", waypoints);
+      }
+    }
+
+    return base.toString();
+  }
+
+  function openMultiStopNav(){
+    const pending = getPendingStopsForNavigation();
+    if(pending.length === 0){
+      toast("No pending stops");
+      return;
+    }
+
+    if(pending.length === 1){
+      openNav(pending[0].id);
+      return;
+    }
+
+    const batch = pending.slice(0, MULTI_NAV_BATCH_SIZE);
+    const url = buildMultiStopUrl(batch);
+    if(!url){
+      toast("Failed to create multi-stop navigation");
+      return;
+    }
+
+    window.open(url, "_blank");
+
+    if(pending.length > batch.length){
+      toast(`Opened multi-stop navigation for the first ${batch.length} stops. Continue with the remaining stops after this batch.`);
+    }else{
+      toast(`Opened multi-stop navigation for ${batch.length} stops`);
+    }
+  }
+
   function clearAll(){
     if(!confirm("Delete all stops?")) return;
     stops = [];
@@ -2110,7 +2180,7 @@
         opacity: 0.9,
         fillOpacity: 0.12,
         dashArray: "6 6"
-      }).addTo(map).bindPopup("Estimated position (GPS signal lost)");
+      }).addTo(map).bindPopup("推測位置（GPSロスト中）");
     }else{
       predictMarker.setLatLng([latlng.lat, latlng.lng]);
     }
@@ -2222,7 +2292,7 @@
         arriveInsideSince = 0;
         lastAutoDoneAt = now;
         nearNotifiedStopId = next.id;
-        toast(`Arrived ✅ (${Math.round(d)}m)`);
+        toast(`Arrived ✅（${Math.round(d)}m）`);
         setDone(next.id);
         if(navigator.vibrate) navigator.vibrate([120, 80, 120]);
       }
@@ -2351,7 +2421,7 @@
     }
     $("speechPill").textContent = "Speech: OK";
     recog = new SpeechRecognition();
-    recog.lang = "en-US";
+    recog.lang = "ja-JP";
     recog.interimResults = false;
     recog.maxAlternatives = 1;
   }
@@ -2380,11 +2450,11 @@
     if(stops.length > 0) return;
 
     const sampleStops = [
-      { name: "Sample Stop 1", address: "Times Square, New York, NY, USA" },
-      { name: "Sample Stop 2", address: "Grand Central Terminal, New York, NY, USA" },
-      { name: "Sample Stop 3", address: "Empire State Building, New York, NY, USA" },
-      { name: "Sample Stop 4", address: "Brooklyn Bridge, New York, NY, USA" },
-      { name: "Sample Stop 5", address: "One World Trade Center, New York, NY, USA" }
+      { name: "Sample Stop 1", address: "Shibuya Scramble Crossing, Tokyo, Japan" },
+      { name: "Sample Stop 2", address: "Tokyo Tower, Tokyo, Japan" },
+      { name: "Sample Stop 3", address: "Tokyo Station, Tokyo, Japan" },
+      { name: "Sample Stop 4", address: "Ueno Station, Tokyo, Japan" },
+      { name: "Sample Stop 5", address: "Asakusa Kaminarimon, Tokyo, Japan" }
     ];
 
     let success = 0;
@@ -2413,7 +2483,7 @@
   async function registerSW(){
     if(!("serviceWorker" in navigator)) return;
     try{
-      await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.register("./sw.js");
     }catch(e){
       console.warn("SW register failed", e);
     }
@@ -2449,6 +2519,7 @@
   $("clearBtn").addEventListener("click", clearAll);
   $("fitBtn").addEventListener("click", fitAll);
   $("optBtn").addEventListener("click", optimizeOrderRoad);
+  $("multiNavBtn").addEventListener("click", openMultiStopNav);
 
   $("cancelAdjustBtn").addEventListener("click", () => cancelAdjust(false));
   $("confirmAdjustBtn").addEventListener("click", confirmAdjust);
@@ -2466,7 +2537,7 @@
   $("zipBtn").addEventListener("click", async () => {
     const zip = $("zip").value.trim();
     if(!zip){
-      toast("Please enter a postal code");
+      toast("Postal Codeを入力してください");
       $("zip").focus();
       return;
     }
@@ -2529,6 +2600,8 @@
     if(next) openNav(next.id);
   });
 
+  $("dashMultiNavBtn").addEventListener("click", openMultiStopNav);
+
   $("dashDoneBtn").addEventListener("click", () => {
     const next = getNextPendingStop();
     if(next) setDone(next.id);
@@ -2561,6 +2634,7 @@
 </script>
 </body>
 </html>
+
 
 
 
