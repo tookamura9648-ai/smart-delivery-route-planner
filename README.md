@@ -1,61 +1,101 @@
 # Smart Delivery Route Planner
 
-A lightweight delivery route planning web app built with **Leaflet + OpenStreetMap**.
+🚚 **Plan delivery routes in seconds.**
 
-This project is designed for delivery drivers and small logistics teams who need a simple way to:
+Smart Delivery Route Planner is a lightweight web app for delivery drivers and couriers.
+Import stops from CSV, automatically optimize the route, adjust it manually with drag & drop, and launch Google Maps navigation instantly.
 
-- import stops from CSV
-- optimize delivery order
-- rearrange stops with drag and drop
-- open the next stop in Google Maps navigation
-- install the app as a PWA on mobile or desktop
+Works directly in the browser and can be installed on your phone as a **PWA (Progressive Web App)**.
 
-## Features
+---
 
-- CSV bulk import of delivery stops
-- Route optimization
-- Drag & drop delivery order
-- Google Maps navigation launch
-- PWA support
-- Opening animation
-- English UI for international users
+## 🌍 Live Demo
 
-## Recommended folder structure
+👉 https://tookamura9648-ai.github.io/smart-delivery-route-planner/
 
-```text
-smart-delivery-route-planner
-│
-├ index.html
-├ manifest.json
-├ sw.js
-├ README.md
-├ LICENSE.txt
-├ logo.svg
-├ hero_image.png
-├ route_optimization.png
-├ csv_import.png
-├ icon-192.png
-├ icon-512.png
-└ api
-    ├ geocode.js
-    └ savePoint.js
+Open the demo on your smartphone and try planning a delivery route.
+
+---
+
+## ✨ Features
+
+* 📄 **CSV Import** – Add many delivery stops at once
+* ⚡ **Auto Route Optimization** – Calculate an efficient delivery order
+* ✋ **Manual Reordering** – Drag & drop stops to adjust the route
+* 🧭 **Google Maps Navigation** – Launch navigation with one tap
+* 📱 **Mobile Friendly** – Works on smartphone and desktop
+* 📦 **PWA Installable** – Add the app to your home screen
+* 🎤 **Voice Address Input** – Quickly add stops by voice
+
+---
+
+## 🖼 Screenshots
+
+### Route Optimization
+
+![Route Optimization](route_optimization.png)
+
+### CSV Import
+
+![CSV Import](csv_import.png)
+
+---
+
+## 🚀 Quick Start
+
+Clone the repository
+
+```
+git clone https://github.com/tookamura9648-ai/smart-delivery-route-planner
 ```
 
-## CSV format
+Open
 
-```csv
+```
+index.html
+```
+
+in your browser.
+
+No installation required.
+
+---
+
+## 📄 CSV Format
+
+Example CSV file:
+
+```
 name,address
-Customer A,350 5th Ave New York NY
-Customer B,Times Square New York NY
-Customer C,1 Liberty Island New York NY
+Customer A,350 5th Ave New York
+Customer B,Times Square New York
+Customer C,Brooklyn Bridge New York
 ```
 
-## Notes
+Import the CSV file to add multiple delivery stops instantly.
 
-- `icon-192.png` and `icon-512.png` are used for the PWA manifest.
-- `hero_image.png`, `route_optimization.png`, and `csv_import.png` are marketing/demo assets for GitHub, Gumroad, or landing pages.
-- `logo.svg` can be reused in the README, web page, and app splash materials.
+---
 
-## License
+## 🛠 Tech Stack
+
+* Leaflet
+* OpenStreetMap
+* JavaScript
+* Progressive Web App (PWA)
+
+---
+
+## 👨‍💼 Use Cases
+
+* Delivery drivers
+* Courier services
+* Small logistics teams
+* Independent contractors
+* Field service workers
+
+---
+
+## 📜 License
 
 MIT License
+
