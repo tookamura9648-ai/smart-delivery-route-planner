@@ -600,7 +600,7 @@
 }
 </style>
 </head>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCMx9dZxwmU9QWdwuHLWdVS7iEOa2nO2Ik&libraries=places"></script>
 <body>
   <header>
 
@@ -1432,47 +1432,42 @@
     return null;
   }
 
-  async function geocodeAddress(address){
-    const API_KEY = "AIzaSyCMx9dZxwmU9QWdwuHLWdVS7iEOa2nO2Ik";
-    if(!API_KEY || API_KEY.includes("__YOUR_")){
-      console.warn("Google Geocoding API key is not set.");
+  async function geocodeAddress(address) {
+  try {
+    if (!window.google || !google.maps || !google.maps.Geocoder) {
+      console.error("Google Maps JavaScript API is not loaded.");
       return null;
     }
 
-    try{
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("GEOCODE raw response:", data);
+    const geocoder = new google.maps.Geocoder();
 
-      if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
-        return {
-          lat: Number(data.results[0].geometry.location.lat),
-          lng: Number(data.results[0].geometry.location.lng)
-        };
-      }
+    const result = await new Promise((resolve) => {
+      geocoder.geocode({ address }, (results, status) => {
+        if (
+          status === "OK" &&
+          results &&
+          results[0] &&
+          results[0].geometry &&
+          results[0].geometry.location
+        ) {
+          const loc = results[0].geometry.location;
+          resolve({
+            lat: loc.lat(),
+            lng: loc.lng()
+          });
+        } else {
+          console.warn("Geocode failed:", address, status);
+          resolve(null);
+        }
+      });
+    });
 
-      console.warn("Geocode failed:", address, data.status, data.error_message);
-      return null;
-    }catch(e){
-      console.error("Geocode error:", e);
-      return null;
-    }
-  }catch(e){
-      const msg = e?.message || String(e);
-      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
-      if(!retryable) return null;
-
-      try{
-        await new Promise(r => setTimeout(r, 450));
-        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
-        console.log("GEOCODE raw response(retry):", data2);
-        const ll2 = extractLatLngFromGeocodeResponse(data2);
-        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
-      }catch(_e2){}
-      return null;
-    }
+    return result;
+  } catch (error) {
+    console.error("Geocode error:", error);
+    return null;
   }
+}
 
   async function getSharedPoint(address){
     return null;
