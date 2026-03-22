@@ -1443,25 +1443,22 @@
   }
 
   async function geocodeAddress(address) {
-  const API_KEY = "ここにあなたのAPIキー";
+  const API_KEY = "AIzaSyCMx9dZxwmU9QWdwuHLWdVS7iEOa2nO2Ik";
 
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
-
     const res = await fetch(url);
     const data = await res.json();
 
-    if (data.status === "OK") {
-      const location = data.results[0].geometry.location;
+    if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
       return {
-        lat: location.lat,
-        lng: location.lng
+        lat: data.results[0].geometry.location.lat,
+        lng: data.results[0].geometry.location.lng
       };
     } else {
-      console.warn("Geocode failed:", address, data.status);
+      console.warn("Geocode failed:", address, data.status, data.error_message);
       return null;
     }
-
   } catch (error) {
     console.error("Geocode error:", error);
     return null;
