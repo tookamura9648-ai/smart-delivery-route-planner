@@ -1364,15 +1364,15 @@
   }
 
   function isValidLatLng(lat, lng){
-    return (
-      typeof lat === "number" &&
-      typeof lng === "number" &&
-      isFinite(lat) &&
-      isFinite(lng) &&
-      lat >= 20 && lat <= 50 &&
-      lng >= 120 && lng <= 155
-    );
-  }
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    isFinite(lat) &&
+    isFinite(lng) &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180
+  );
+}
 
   function normalizeLatLngMaybeSwap(lat, lng){
     if(isValidLatLng(lat, lng)) return { lat, lng, swapped:false };
