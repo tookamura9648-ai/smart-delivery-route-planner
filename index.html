@@ -1449,7 +1449,8 @@
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
-
+    console.log("Geocode request:", address);
+    console.log("Geocode response:", data);
     if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
       return {
         lat: data.results[0].geometry.location.lat,
@@ -1460,6 +1461,7 @@
       return null;
     }
   } catch (error) {
+    console.error("Geocode error detail:", error);
     console.error("Geocode error:", error);
     return null;
   }
