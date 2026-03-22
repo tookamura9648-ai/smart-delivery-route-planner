@@ -1442,29 +1442,31 @@
     return null;
   }
 
-  async function geocodeAddress(addr){
-    const url = "/api/geocode?q=" + encodeURIComponent(addr);
-    try{
-      const data = await fetchJsonWithTimeout(url, {}, 9000);
-      console.log("GEOCODE raw response:", data);
-      const ll = extractLatLngFromGeocodeResponse(data);
-      if(ll) return { lat: ll.lat, lng: ll.lng };
-      return null;
-    }catch(e){
-      const msg = e?.message || String(e);
-      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
-      if(!retryable) return null;
+  async function geocodeAddress(address) {
+  const API_KEY = "ここにあなたのAPIキー";
 
-      try{
-        await new Promise(r => setTimeout(r, 450));
-        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
-        console.log("GEOCODE raw response(retry):", data2);
-        const ll2 = extractLatLngFromGeocodeResponse(data2);
-        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
-      }catch(_e2){}
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status === "OK") {
+      const location = data.results[0].geometry.location;
+      return {
+        lat: location.lat,
+        lng: location.lng
+      };
+    } else {
+      console.warn("Geocode failed:", address, data.status);
       return null;
     }
+
+  } catch (error) {
+    console.error("Geocode error:", error);
+    return null;
   }
+}
 
   async function getSharedPoint(address){
     try{
@@ -1947,9 +1949,10 @@
       lat = Number(remembered.lat);
       lng = Number(remembered.lng);
     }else{
-      const geo = await geocodeWithFallback(address);
-      if(!geo){
-        return { ok:false, reason:"座標化失敗", name, address };
+      const geo = await geocodeAddress(address);
+
+      if (!geo) {
+        return false;
       }
       lat = geo.lat;
       lng = geo.lng;
