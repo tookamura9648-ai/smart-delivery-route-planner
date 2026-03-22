@@ -796,11 +796,11 @@
       <div class="hint" style="margin-top:10px;">Tip: Use <b>Auto Optimize</b> first, then drag any pending stop to adjust the order manually. <b>Multi-Stop Nav</b> uses the current stop order.</div>
 
       <div class="hint">
-        Address geocoding: <b>/api/geocode</b><br>
-        Shared saved point lookup: <b>/api/getPoint</b><br>
-        Save adjusted point: <b>/api/savePoint</b><br>
-        Road route line: <b>/api/route</b><br>
-        Road travel-time optimization: <b>/api/table</b>
+        Address geocoding: <b>Google Geocoding API</b><br>
+        Shared saved point lookup: <b>localStorage only</b><br>
+        Save adjusted point: <b>localStorage only</b><br>
+        Route line: <b>direct polyline (GitHub Pages compatible)</b><br>
+        Optimization: <b>built-in distance-based optimization</b>
       </div>
     </section>
   </main>
@@ -1307,19 +1307,9 @@
     savePinMemory(s.address, s.lat, s.lng);
 
     try{
-      await fetch("/api/savePoint", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({
-          address: (s.address || "").trim(),
-          lat: s.lat,
-          lng: s.lng
-        })
-      });
-      toast("Saved to shared storage");
+      toast("Saved locally");
     }catch(e){
-      console.log("Shared save failed", e);
-      toast("Failed to save to shared storage (check network/settings)");
+      console.log("Local save notice failed", e);
     }
 
     redrawMarkers();
@@ -1442,39 +1432,51 @@
     return null;
   }
 
-  async function geocodeAddress(address) {
-  const API_KEY = "AIzaSyCMx9dZxwmU9QWdwuHLWdVS7iEOa2nO2Ik";
-
-  try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log("Geocode request:", address);
-    console.log("Geocode response:", data);
-    if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
-      return {
-        lat: data.results[0].geometry.location.lat,
-        lng: data.results[0].geometry.location.lng
-      };
-    } else {
-      console.warn("Geocode failed:", address, data.status, data.error_message);
+  async function geocodeAddress(address){
+    const API_KEY = "__YOUR_GOOGLE_GEOCODING_API_KEY__";
+    if(!API_KEY || API_KEY.includes("__YOUR_")){
+      console.warn("Google Geocoding API key is not set.");
       return null;
     }
-  } catch (error) {
-    console.error("Geocode error detail:", error);
-    console.error("Geocode error:", error);
-    return null;
+
+    try{
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("GEOCODE raw response:", data);
+
+      if (data.status === "OK" && data.results?.[0]?.geometry?.location) {
+        return {
+          lat: Number(data.results[0].geometry.location.lat),
+          lng: Number(data.results[0].geometry.location.lng)
+        };
+      }
+
+      console.warn("Geocode failed:", address, data.status, data.error_message);
+      return null;
+    }catch(e){
+      console.error("Geocode error:", e);
+      return null;
+    }
+  }catch(e){
+      const msg = e?.message || String(e);
+      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
+      if(!retryable) return null;
+
+      try{
+        await new Promise(r => setTimeout(r, 450));
+        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
+        console.log("GEOCODE raw response(retry):", data2);
+        const ll2 = extractLatLngFromGeocodeResponse(data2);
+        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
+      }catch(_e2){}
+      return null;
+    }
   }
-}
 
   async function getSharedPoint(address){
-    try{
-      const res = await fetch("/api/getPoint?address=" + encodeURIComponent((address || "").trim()));
-      if(!res.ok) return null;
-      const data = await res.json();
-      if(isValidLatLng(Number(data?.lat), Number(data?.lng))){
-        return { lat:Number(data.lat), lng:Number(data.lng) };
-      }
+    return null;
+  }
       return null;
     }catch(e){
       return null;
@@ -1568,15 +1570,8 @@
     if(pending.length < 2) return;
 
     try{
-      const coords = pending.map(s => `${s.lng},${s.lat}`).join(";");
-      const r = await fetch("/api/route?coords=" + encodeURIComponent(coords));
-      const data = await r.json();
-
-      const coordsArr = data?.routes?.[0]?.geometry?.coordinates;
-      if(!Array.isArray(coordsArr) || coordsArr.length < 2) return;
-
-      const latlngs = coordsArr.map(([lng, lat]) => [lat, lng]);
-      roadRoutePtsCache = coordsArr.map(([lng, lat]) => ({ lat, lng }));
+      const latlngs = pending.map(s => [s.lat, s.lng]);
+      roadRoutePtsCache = pending.map(s => ({ lat:s.lat, lng:s.lng }));
 
       roadRouteLine = L.polyline(latlngs, {
         weight:5,
@@ -1666,12 +1661,24 @@
     return pts.map(p => `${p.lng},${p.lat}`).join(";");
   }
 
+  function haversineMeters(a, b){
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const x = Math.sin(dLat/2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+
   async function fetchDurationMatrix(coordsStr){
-    const r = await fetch("/api/table?coords=" + encodeURIComponent(coordsStr));
-    const data = await r.json();
-    const d = data?.durations;
-    if(!Array.isArray(d) || !Array.isArray(d[0])) return null;
-    return d;
+    const pts = coordsStr.split(";").map(p => {
+      const [lng, lat] = p.split(",").map(Number);
+      return { lat, lng };
+    });
+    const D = pts.map(a => pts.map(b => haversineMeters(a, b)));
+    return D;
   }
 
   function routeCost(order, D){
@@ -1832,7 +1839,7 @@
         lng = Number(remembered.lng);
         toast("Used saved entry point");
       }else{
-        const geo = await geocodeWithFallback(addressRaw);
+        const geo = await geocodeAddress(addressRaw);
         if(!geo){
           toast("Addressが見つかりませんでした。\n・県市から入れる\n・建物名/部屋番号を外す\nを試してください");
           return;
@@ -1949,9 +1956,8 @@
       lng = Number(remembered.lng);
     }else{
       const geo = await geocodeAddress(address);
-
-      if (!geo) {
-        return false;
+      if(!geo){
+        return { ok:false, reason:"座標化失敗", name, address };
       }
       lat = geo.lat;
       lng = geo.lng;
@@ -2636,6 +2642,7 @@
 </script>
 </body>
 </html>
+
 
 
 
