@@ -600,7 +600,7 @@
 }
 </style>
 </head>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCMx9dZxwmU9QWdwuHLWdVS7iEOa2nO2Ik&libraries=places"></script>
+
 <body>
   <header>
 
@@ -796,11 +796,11 @@
       <div class="hint" style="margin-top:10px;">Tip: Use <b>Auto Optimize</b> first, then drag any pending stop to adjust the order manually. <b>Multi-Stop Nav</b> uses the current stop order.</div>
 
       <div class="hint">
-        Address geocoding: <b>Google Geocoding API</b><br>
-        Shared saved point lookup: <b>localStorage only</b><br>
-        Save adjusted point: <b>localStorage only</b><br>
-        Route line: <b>direct polyline (GitHub Pages compatible)</b><br>
-        Optimization: <b>built-in distance-based optimization</b>
+        Address geocoding: <b>/api/geocode</b><br>
+        Shared saved point lookup: <b>/api/getPoint</b><br>
+        Save adjusted point: <b>/api/savePoint</b><br>
+        Road route line: <b>/api/route</b><br>
+        Road travel-time optimization: <b>/api/table</b>
       </div>
     </section>
   </main>
@@ -879,7 +879,7 @@
   const hdgPill = $("hdgPill");
 
   const PARK_STORAGE_KEY = "koguchi_park_pos_v1";
-  const SAMPLE_DATA_KEY = "delivery_sample_loaded_v1";
+  const SAMPLE_DATA_KEY = "delivery_sample_loaded_v2_nyc";
 
   const NEAR_NOTICE_RADIUS_M = 50;
   const ARRIVE_RADIUS_M = 20;
@@ -971,7 +971,7 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stops));
   }
 
-  const map = L.map("map", { zoomControl:false }).setView([35.02, 135.86], 12);
+  const map = L.map("map", { zoomControl:false }).setView([40.7580, -73.9855], 12);
   L.control.zoom({ position:"bottomright" }).addTo(map);
 
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -1307,9 +1307,19 @@
     savePinMemory(s.address, s.lat, s.lng);
 
     try{
-      toast("Saved locally");
+      await fetch("/api/savePoint", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          address: (s.address || "").trim(),
+          lat: s.lat,
+          lng: s.lng
+        })
+      });
+      toast("Saved to shared storage");
     }catch(e){
-      console.log("Local save notice failed", e);
+      console.log("Shared save failed", e);
+      toast("Failed to save to shared storage (check network/settings)");
     }
 
     redrawMarkers();
@@ -1354,15 +1364,15 @@
   }
 
   function isValidLatLng(lat, lng){
-    return (
-      typeof lat === "number" &&
-      typeof lng === "number" &&
-      isFinite(lat) &&
-      isFinite(lng) &&
-      lat >= -90 && lat <= 90 &&
-      lng >= -180 && lng <= 180
-    );
-  }
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    isFinite(lat) &&
+    isFinite(lng) &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180
+  );
+}
 
   function normalizeLatLngMaybeSwap(lat, lng){
     if(isValidLatLng(lat, lng)) return { lat, lng, swapped:false };
@@ -1432,46 +1442,43 @@
     return null;
   }
 
-  async function geocodeAddress(address) {
-  try {
-    if (!window.google || !google.maps || !google.maps.Geocoder) {
-      console.error("Google Maps JavaScript API is not loaded.");
+  async function geocodeAddress(addr){
+    const url = "/api/geocode?q=" + encodeURIComponent(addr);
+    try{
+      const data = await fetchJsonWithTimeout(url, {}, 9000);
+      console.log("GEOCODE raw response:", data);
+      const ll = extractLatLngFromGeocodeResponse(data);
+      if(ll) return { lat: ll.lat, lng: ll.lng };
+      return null;
+    }catch(e){
+      const msg = e?.message || String(e);
+      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
+      if(!retryable) return null;
+
+      try{
+        await new Promise(r => setTimeout(r, 450));
+        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
+        console.log("GEOCODE raw response(retry):", data2);
+        const ll2 = extractLatLngFromGeocodeResponse(data2);
+        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
+      }catch(_e2){}
       return null;
     }
-
-    const geocoder = new google.maps.Geocoder();
-
-    const result = await new Promise((resolve) => {
-      geocoder.geocode({ address }, (results, status) => {
-        if (
-          status === "OK" &&
-          results &&
-          results[0] &&
-          results[0].geometry &&
-          results[0].geometry.location
-        ) {
-          const loc = results[0].geometry.location;
-          resolve({
-            lat: loc.lat(),
-            lng: loc.lng()
-          });
-        } else {
-          console.warn("Geocode failed:", address, status);
-          resolve(null);
-        }
-      });
-    });
-
-    return result;
-  } catch (error) {
-    console.error("Geocode error:", error);
-    return null;
   }
-}
 
   async function getSharedPoint(address){
-  return null;
-}
+    try{
+      const res = await fetch("/api/getPoint?address=" + encodeURIComponent((address || "").trim()));
+      if(!res.ok) return null;
+      const data = await res.json();
+      if(isValidLatLng(Number(data?.lat), Number(data?.lng))){
+        return { lat:Number(data.lat), lng:Number(data.lng) };
+      }
+      return null;
+    }catch(e){
+      return null;
+    }
+  }
 
   async function geocodeWithFallback(rawAddress){
     const cache = loadGeoCache();
@@ -1560,8 +1567,15 @@
     if(pending.length < 2) return;
 
     try{
-      const latlngs = pending.map(s => [s.lat, s.lng]);
-      roadRoutePtsCache = pending.map(s => ({ lat:s.lat, lng:s.lng }));
+      const coords = pending.map(s => `${s.lng},${s.lat}`).join(";");
+      const r = await fetch("/api/route?coords=" + encodeURIComponent(coords));
+      const data = await r.json();
+
+      const coordsArr = data?.routes?.[0]?.geometry?.coordinates;
+      if(!Array.isArray(coordsArr) || coordsArr.length < 2) return;
+
+      const latlngs = coordsArr.map(([lng, lat]) => [lat, lng]);
+      roadRoutePtsCache = coordsArr.map(([lng, lat]) => ({ lat, lng }));
 
       roadRouteLine = L.polyline(latlngs, {
         weight:5,
@@ -1651,24 +1665,12 @@
     return pts.map(p => `${p.lng},${p.lat}`).join(";");
   }
 
-  function haversineMeters(a, b){
-    const R = 6371000;
-    const toRad = d => d * Math.PI / 180;
-    const dLat = toRad(b.lat - a.lat);
-    const dLng = toRad(b.lng - a.lng);
-    const lat1 = toRad(a.lat);
-    const lat2 = toRad(b.lat);
-    const x = Math.sin(dLat/2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng/2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(x));
-  }
-
   async function fetchDurationMatrix(coordsStr){
-    const pts = coordsStr.split(";").map(p => {
-      const [lng, lat] = p.split(",").map(Number);
-      return { lat, lng };
-    });
-    const D = pts.map(a => pts.map(b => haversineMeters(a, b)));
-    return D;
+    const r = await fetch("/api/table?coords=" + encodeURIComponent(coordsStr));
+    const data = await r.json();
+    const d = data?.durations;
+    if(!Array.isArray(d) || !Array.isArray(d[0])) return null;
+    return d;
   }
 
   function routeCost(order, D){
@@ -1829,7 +1831,7 @@
         lng = Number(remembered.lng);
         toast("Used saved entry point");
       }else{
-        const geo = await geocodeAddress(addressRaw);
+        const geo = await geocodeWithFallback(addressRaw);
         if(!geo){
           toast("Addressが見つかりませんでした。\n・県市から入れる\n・建物名/部屋番号を外す\nを試してください");
           return;
@@ -1945,7 +1947,7 @@
       lat = Number(remembered.lat);
       lng = Number(remembered.lng);
     }else{
-      const geo = await geocodeAddress(address);
+      const geo = await geocodeWithFallback(address);
       if(!geo){
         return { ok:false, reason:"座標化失敗", name, address };
       }
@@ -2448,11 +2450,11 @@
     if(stops.length > 0) return;
 
     const sampleStops = [
-      { name: "Sample Stop 1", address: "Shibuya Scramble Crossing, Tokyo, Japan" },
-      { name: "Sample Stop 2", address: "Tokyo Tower, Tokyo, Japan" },
-      { name: "Sample Stop 3", address: "Tokyo Station, Tokyo, Japan" },
-      { name: "Sample Stop 4", address: "Ueno Station, Tokyo, Japan" },
-      { name: "Sample Stop 5", address: "Asakusa Kaminarimon, Tokyo, Japan" }
+      { name: "Sample Stop 1", address: "Times Square, New York, NY, USA" },
+      { name: "Sample Stop 2", address: "350 5th Ave, New York, NY 10118, USA" },
+      { name: "Sample Stop 3", address: "Central Park South, New York, NY, USA" },
+      { name: "Sample Stop 4", address: "Brooklyn Bridge, New York, NY, USA" },
+      { name: "Sample Stop 5", address: "Wall Street, New York, NY, USA" }
     ];
 
     let success = 0;
@@ -2632,6 +2634,7 @@
 </script>
 </body>
 </html>
+
 
 
 
