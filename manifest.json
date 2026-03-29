@@ -2,11 +2,10 @@
   "name": "Smart Delivery Route Planner",
   "short_name": "Route Planner",
   "description": "Optimize delivery routes instantly with CSV import and Google Maps navigation.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2c7be5",
-  "orientation": "portrait",
   "icons": [
     {
       "src": "./icon-192.png",
