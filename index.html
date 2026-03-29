@@ -1443,28 +1443,22 @@
   }
 
   async function geocodeAddress(addr){
-    const url = "/api/geocode?q=" + encodeURIComponent(addr);
-    try{
-      const data = await fetchJsonWithTimeout(url, {}, 9000);
-      console.log("GEOCODE raw response:", data);
-      const ll = extractLatLngFromGeocodeResponse(data);
-      if(ll) return { lat: ll.lat, lng: ll.lng };
-      return null;
-    }catch(e){
-      const msg = e?.message || String(e);
-      const retryable = msg.includes("timeout") || msg.includes("Failed to fetch") || msg.includes("network");
-      if(!retryable) return null;
+  const url = "/api/geocode?q=" + encodeURIComponent(addr);
 
-      try{
-        await new Promise(r => setTimeout(r, 450));
-        const data2 = await fetchJsonWithTimeout(url, {}, 9000);
-        console.log("GEOCODE raw response(retry):", data2);
-        const ll2 = extractLatLngFromGeocodeResponse(data2);
-        if(ll2) return { lat: ll2.lat, lng: ll2.lng };
-      }catch(_e2){}
-      return null;
-    }
+  try{
+    const data = await fetchJsonWithTimeout(url, {}, 9000);
+    console.log("GEOCODE addr:", addr);
+    console.log("GEOCODE raw response:", data);
+
+    const ll = extractLatLngFromGeocodeResponse(data);
+    if(ll) return { lat: ll.lat, lng: ll.lng };
+
+    return null;
+  }catch(e){
+    console.error("GEOCODE error:", e);
+    return null;
   }
+}
 
   async function getSharedPoint(address){
     try{
