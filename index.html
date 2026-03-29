@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Delivery Route Planner</title>
+  <title>配送ルート最適化ツール</title>
 
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0b1020">
@@ -698,57 +698,57 @@
     </svg>
 
     <div class="openingLogo">
-      <div class="main">Delivery Route Planner</div>
-      <div class="sub">KOBETSU NAVIGATION</div>
+      <div class="main">配送ルート最適化ツール</div>
+      <div class="sub">個別ナビゲーション</div>
     </div>
   </div>
 </div>
     
-    <div class="title">Delivery Route Planner</div>
+    <div class="title">配送ルート最適化ツール</div>
 
     <div class="inputGrid">
       <div class="field">
-        <input id="zip" type="tel" inputmode="numeric" pattern="[0-9\-]*" placeholder="Postal Code" autocomplete="postal-code">
-        <button class="btn small" id="zipBtn">Fill Address</button>
+        <input id="zip" type="tel" inputmode="numeric" pattern="[0-9\-]*" placeholder="郵便番号" autocomplete="postal-code">
+        <button class="btn small" id="zipBtn">住所補完</button>
       </div>
 
       <div class="field">
-        <button class="btn icon" id="micName" title="Speech Input (Name)">🎤</button>
-        <input id="name" type="text" placeholder="Name" autocomplete="off">
+        <button class="btn icon" id="micName" title="音声入力（名前）">🎤</button>
+        <input id="name" type="text" placeholder="名前" autocomplete="off">
       </div>
 
       <div class="field">
-        <button class="btn icon" id="micAddr" title="Speech Input (Address)">🎤</button>
-        <input id="addr" type="text" placeholder="Address" autocomplete="off">
+        <button class="btn icon" id="micAddr" title="音声入力（住所）">🎤</button>
+        <input id="addr" type="text" placeholder="住所" autocomplete="off">
       </div>
 
       
       <div class="row" style="justify-content:space-between;">
         <div class="row" style="flex-wrap:wrap;">
-          <button class="btn primary" id="addBtn">+ Add</button>
-          <button class="btn small warn" id="csvBtn">📄 CSV Import</button>
+          <button class="btn primary" id="addBtn">＋追加</button>
+          <button class="btn small warn" id="csvBtn">📄 CSV取込</button>
           <input id="csvFile" type="file" accept=".csv,text/csv" style="display:none;">
         </div>
         <div class="row">
-          <button class="btn small" id="locBtn">📍 Current</button>
-          <button class="btn small danger" id="clearBtn">🗑 Clear All</button>
+          <button class="btn small" id="locBtn">📍 現在地</button>
+          <button class="btn small danger" id="clearBtn">🗑 全削除</button>
         </div>
       </div>
 
       <div class="status">
-        <div class="pill" id="countPill">Stops: 0</div>
-        <div class="pill" id="speechPill">Speech: Unknown</div>
-        <div class="pill" id="geoPill">Location: Unknown</div>
-        <div class="pill" id="gpsPill">GPS: Idle</div>
-        <div class="pill" id="hdgPill">Heading: —</div>
+        <div class="pill" id="countPill">件数: 0</div>
+        <div class="pill" id="speechPill">音声: 不明</div>
+        <div class="pill" id="geoPill">位置情報: 不明</div>
+        <div class="pill" id="gpsPill">GPS: 待機中</div>
+        <div class="pill" id="hdgPill">方位: —</div>
       </div>
     </div>
   </header>
 
   <div id="deliveryStatus" class="deliveryStatus">
     <div class="statusTop">
-      <span id="deliveryMode">In Delivery</span>
-      <span id="remainingCount">Remaining 0</span>
+      <span id="deliveryMode">配達中</span>
+      <span id="remainingCount">残り 0</span>
     </div>
     <div class="progressBar">
       <div id="progressFill" class="progressFill"></div>
@@ -756,21 +756,21 @@
   </div>
 
   <section id="nextStopCard" class="nextStopCard">
-    <div class="nextStopLabel">Next Stop</div>
-    <div id="nextStopName" class="nextStopName">Not Set</div>
-    <div id="nextStopAddr" class="nextStopAddr">No stops available</div>
+    <div class="nextStopLabel">次の配達先</div>
+    <div id="nextStopName" class="nextStopName">未設定</div>
+    <div id="nextStopAddr" class="nextStopAddr">配達先がありません</div>
 
     <div class="nextStopMeta">
-      <span id="nextStopDistance" class="metaChip">Distance: —</span>
-      <span id="nextStopRemain" class="metaChip">Remaining: 0</span>
+      <span id="nextStopDistance" class="metaChip">距離: —</span>
+      <span id="nextStopRemain" class="metaChip">残り: 0</span>
     </div>
 
     <div class="nextStopActions">
-      <button class="btn primary" id="dashNavBtn">▶ Navigate</button>
-      <button class="btn" id="dashMultiNavBtn">🛣 Multi-Stop Nav</button>
-      <button class="btn good" id="dashDoneBtn">✔ Done</button>
-      <button class="btn warn" id="parkBtn">🚗 Save Parking</button>
-      <button class="btn" id="backToParkBtn">↩ Back to Car</button>
+      <button class="btn primary" id="dashNavBtn">▶ ナビ開始</button>
+      <button class="btn" id="dashMultiNavBtn">🛣 複数先ナビ</button>
+      <button class="btn good" id="dashDoneBtn">✔ 完了</button>
+      <button class="btn warn" id="parkBtn">🚗 駐車位置保存</button>
+      <button class="btn" id="backToParkBtn">↩ 車へ戻る</button>
     </div>
   </section>
 
@@ -782,25 +782,25 @@
     <section class="panel">
       <div class="listHeader">
         <div>
-          <div style="font-weight:900;">Stops <span style="font-size:12px;color:var(--good);font-weight:800;margin-left:6px;">Auto + Manual</span></div>
-          <div class="meta">Auto-optimize with road travel times, then manually fine-tune with drag & drop</div>
+          <div style="font-weight:900;">配達先 <span style="font-size:12px;color:var(--good);font-weight:800;margin-left:6px;">自動＋手動</span></div>
+          <div class="meta">道路時間で自動最適化し、その後ドラッグ＆ドロップで手動調整できます</div>
         </div>
         <div class="row">
-          <button class="btn small" id="optBtn">✨ Auto Optimize</button>
-          <button class="btn small" id="fitBtn">🧭 Fit All</button>
-          <button class="btn small" id="multiNavBtn">🛣 Multi-Stop Nav</button>
+          <button class="btn small" id="optBtn">✨ 自動最適化</button>
+          <button class="btn small" id="fitBtn">🧭 全体表示</button>
+          <button class="btn small" id="multiNavBtn">🛣 複数先ナビ</button>
         </div>
       </div>
 
       <div class="list" id="list"></div>
-      <div class="hint" style="margin-top:10px;">Tip: Use <b>Auto Optimize</b> first, then drag any pending stop to adjust the order manually. <b>Multi-Stop Nav</b> uses the current stop order.</div>
+      <div class="hint" style="margin-top:10px;">使い方: まず<b>自動最適化</b>を実行し、その後必要に応じて未完了の配達先をドラッグして順番を調整してください。<b>複数先ナビ</b>は現在の並び順を使用します。</div>
 
       <div class="hint">
-        Address geocoding: <b>/api/geocode</b><br>
-        Shared saved point lookup: <b>/api/getPoint</b><br>
-        Save adjusted point: <b>/api/savePoint</b><br>
-        Road route line: <b>/api/route</b><br>
-        Road travel-time optimization: <b>/api/table</b>
+        住所ジオコーディング: <b>/api/geocode</b><br>
+        共有済み位置参照: <b>/api/getPoint</b><br>
+        調整位置の保存: <b>/api/savePoint</b><br>
+        道路ルート線: <b>/api/route</b><br>
+        道路所要時間最適化: <b>/api/table</b>
       </div>
     </section>
   </main>
@@ -808,10 +808,10 @@
   <div class="toast" id="toast"></div>
 
   <div class="adjustBar" id="adjustBar">
-    <div class="msg" id="adjustMsg">Drag, tap, or long-press the pin to adjust its position → Confirm</div>
+    <div class="msg" id="adjustMsg">ピンをドラッグ・タップ・長押しして位置調整 → 確定</div>
     <div class="row" style="gap:8px;">
-      <button class="btn small" id="cancelAdjustBtn">↩ Cancel</button>
-      <button class="btn small good" id="confirmAdjustBtn">✅ Confirm</button>
+      <button class="btn small" id="cancelAdjustBtn">↩ キャンセル</button>
+      <button class="btn small good" id="confirmAdjustBtn">✅ 確定</button>
     </div>
   </div>
 
@@ -1049,12 +1049,12 @@
 
     parkMarker = L.marker([parkPos.lat, parkPos.lng], { icon })
       .addTo(map)
-      .bindPopup("Parking Position");
+      .bindPopup("駐車位置");
   }
 
   function saveParkPos(){
     if(!currentLatLng){
-      toast("Use this after current location is available");
+      toast("現在地取得後に使ってください");
       return;
     }
     parkPos = {
@@ -1064,12 +1064,12 @@
     };
     localStorage.setItem(PARK_STORAGE_KEY, JSON.stringify(parkPos));
     renderParkMarker();
-    toast("Parking position saved 🚗");
+    toast("駐車位置を保存しました 🚗");
   }
 
   function backToPark(){
     if(!parkPos){
-      toast("No parking position saved");
+      toast("駐車位置が未保存です");
       return;
     }
 
@@ -1090,7 +1090,7 @@
     const remaining = stops.filter(s => s.status === "pending").length;
     const percent = total ? Math.round(done / total * 100) : 0;
 
-    $("remainingCount").textContent = `Remaining ${remaining}`;
+    $("remainingCount").textContent = `残り ${remaining}`;
     $("progressFill").style.width = `${percent}%`;
   }
 
@@ -1099,10 +1099,10 @@
     const remaining = stops.filter(s => s.status === "pending").length;
 
     if(!next){
-      $("nextStopName").textContent = "All Deliveries Completed";
-      $("nextStopAddr").textContent = "There are no pending stops";
-      $("nextStopDistance").textContent = "Distance: —";
-      $("nextStopRemain").textContent = `Remaining: 0`;
+      $("nextStopName").textContent = "すべての配達が完了しました";
+      $("nextStopAddr").textContent = "未完了の配達先はありません";
+      $("nextStopDistance").textContent = "距離: —";
+      $("nextStopRemain").textContent = `残り: 0`;
       $("dashNavBtn").disabled = true;
       $("dashMultiNavBtn").disabled = true;
       $("dashDoneBtn").disabled = true;
@@ -1111,7 +1111,7 @@
 
     $("nextStopName").textContent = next.name || "(No Name)";
     $("nextStopAddr").textContent = next.address || "";
-    $("nextStopRemain").textContent = `残り：${remaining}件`;
+    $("nextStopRemain").textContent = `残り: ${remaining}件`;
     $("dashNavBtn").disabled = false;
     $("dashMultiNavBtn").disabled = false;
     $("dashDoneBtn").disabled = false;
@@ -1121,9 +1121,9 @@
         { lat: currentLatLng.lat, lng: currentLatLng.lng },
         { lat: next.lat, lng: next.lng }
       );
-      $("nextStopDistance").textContent = `Distance: ${formatDistance(d)}`;
+      $("nextStopDistance").textContent = `距離: ${formatDistance(d)}`;
     }else{
-      $("nextStopDistance").textContent = "Distance: —";
+      $("nextStopDistance").textContent = "距離: —";
     }
   }
 
@@ -1144,7 +1144,7 @@
     if(d <= NEAR_NOTICE_RADIUS_M){
       if(nearNotifiedStopId !== next.id){
         nearNotifiedStopId = next.id;
-        toast(`Arriving soon: ${next.name || "Next Stop"}（${Math.round(d)}m）`);
+        toast(`もうすぐ到着: ${next.name || "次の配達先"}（${Math.round(d)}m）`);
       }
     }
   }
@@ -1188,7 +1188,7 @@
         const pendingCards = [...list.querySelectorAll('.card[data-status="pending"]')];
         const orderedIds = pendingCards.map(el => el.getAttribute("data-id")).filter(Boolean);
         reorderPendingStopsByIds(orderedIds);
-        toast("Manual order updated");
+        toast("手動並び替えを更新しました");
       }
     });
   }
@@ -1262,7 +1262,7 @@
 
     adjustMarker = L.marker([s.lat, s.lng], { draggable:true })
       .addTo(map)
-      .bindPopup("📍 Adjusting (drag / tap / long-press)")
+      .bindPopup("📍 調整中（ドラッグ / タップ / 長押し）")
       .openPopup();
 
     adjustMarker.on("dragend", () => {
@@ -1272,8 +1272,8 @@
 
     map.setView([s.lat, s.lng], Math.max(map.getZoom(), 17), { animate:true });
     adjustBar.style.display = "flex";
-    adjustMsg.textContent = "Drag, tap, or long-press the pin to move it → ✅ Confirm";
-    toast("Entered adjust mode");
+    adjustMsg.textContent = "ピンをドラッグ・タップ・長押しで移動 → ✅ 確定";
+    toast("位置調整モードに入りました");
   }
 
   function cancelAdjust(showToast = true){
@@ -1285,7 +1285,7 @@
       adjustMarker = null;
     }
     adjustBar.style.display = "none";
-    if(showToast) toast("Cancelled");
+    if(showToast) toast("キャンセルしました");
   }
 
   async function confirmAdjust(){
@@ -1316,10 +1316,10 @@
           lng: s.lng
         })
       });
-      toast("Saved to shared storage");
+      toast("共有保存しました");
     }catch(e){
       console.log("Shared save failed", e);
-      toast("Failed to save to shared storage (check network/settings)");
+      toast("共有保存に失敗しました（通信・設定をご確認ください）");
     }
 
     redrawMarkers();
@@ -1327,7 +1327,7 @@
     map.setView([s.lat, s.lng], Math.max(map.getZoom(), 17), { animate:true });
 
     cancelAdjust(false);
-    toast("Confirmed ✅");
+    toast("確定しました ✅");
   }
 
   function applyQueryToInputs(){
@@ -1340,7 +1340,7 @@
       if(qName) $("name").value = qName;
       if(qAddr) $("addr").value = qAddr;
 
-      toast("Loaded from QR (tap Add to register)");
+      toast("QRから読み込みました（追加を押して登録してください）");
       u.search = "";
       history.replaceState({}, "", u.toString());
       $("addr").focus();
@@ -1349,14 +1349,14 @@
 
   async function fetchAddressByZip(zipRaw){
     const zip = (zipRaw || "").replace(/[^\d]/g, "");
-    if(zip.length !== 7) throw new Error("Postal code must be 7 digits");
+    if(zip.length !== 7) throw new Error("郵便番号は7桁で入力してください");
 
     const url = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`;
     const res = await fetch(url);
     const j = await res.json();
 
     if(j.status !== 200 || !j.results || !j.results[0]){
-      throw new Error("Address not found from postal code");
+      throw new Error("郵便番号から住所を見つけられませんでした");
     }
 
     const r = j.results[0];
@@ -1622,10 +1622,10 @@
         </div>
         <div class="addr">${esc(s.address)}</div>
         <div class="actions">
-          <button class="btn small primary" data-action="nav" data-id="${esc(s.id)}">▶ Navigate</button>
-          <button class="btn small good" data-action="done" data-id="${esc(s.id)}">${s.status === "done" ? "Undo" : "✔ Done"}</button>
-          <button class="btn small" data-action="focus" data-id="${esc(s.id)}">🗺 Map</button>
-          <button class="btn small" data-action="adjust" data-id="${esc(s.id)}">📍 Adjust</button>
+          <button class="btn small primary" data-action="nav" data-id="${esc(s.id)}">▶ ナビ開始</button>
+          <button class="btn small good" data-action="done" data-id="${esc(s.id)}">${s.status === "done" ? "元に戻す" : "✔ Done"}</button>
+          <button class="btn small" data-action="focus" data-id="${esc(s.id)}">🗺 地図</button>
+          <button class="btn small" data-action="adjust" data-id="${esc(s.id)}">📍 調整</button>
         </div>
       `;
       list.appendChild(card);
@@ -1645,7 +1645,7 @@
   function fitAll(){
     const pending = stops.filter(s => s.status === "pending");
     if(pending.length === 0){
-      toast(stops.length ? "No pending stops" : "No stops");
+      toast(stops.length ? "未完了の配達先はありません" : "配達先がありません");
       return;
     }
 
@@ -1761,24 +1761,24 @@
     const done = stops.filter(s => s.status === "done");
 
     if(pending.length <= 1){
-      toast("Not enough stops");
+      toast("配達先が足りません");
       return;
     }
 
     if(!currentLatLng){
-      toast("Please get current location first");
+      toast("先に現在地を取得してください");
       return;
     }
 
     $("optBtn").disabled = true;
-    $("optBtn").textContent = "... Optimizing";
+    $("optBtn").textContent = "... 最適化中";
 
     try{
       const coords = buildCoordsForOSRM(currentLatLng, pending);
       const D = await fetchDurationMatrix(coords);
 
       if(!D){
-        toast("Failed to get road travel times");
+        toast("道路の所要時間取得に失敗しました");
         return;
       }
 
@@ -1793,20 +1793,20 @@
       save();
       redrawMarkers();
       renderList();
-      toast("Route optimized ✅ You can still drag stops to fine-tune the order.");
+      toast("ルート最適化完了 ✅ その後もドラッグで順番を微調整できます。");
     }catch(e){
       console.error(e);
-      toast("Optimization failed");
+      toast("最適化に失敗しました");
     }finally{
       $("optBtn").disabled = false;
-      $("optBtn").textContent = "✨ Auto Optimize";
+      $("optBtn").textContent = "✨ 自動最適化";
     }
   }
 
   async function addStop(){
     const now = Date.now();
     if(now - lastAddAt < ADD_COOLDOWN_MS){
-      toast("Please wait a moment before adding again");
+      toast("続けて追加する前に少しお待ちください");
       return;
     }
     lastAddAt = now;
@@ -1820,7 +1820,7 @@
     }
 
     $("addBtn").disabled = true;
-    $("addBtn").textContent = "... Geocoding";
+    $("addBtn").textContent = "... 位置検索中";
 
     try{
       const remembered = loadPinMemory(addressRaw);
@@ -1829,7 +1829,7 @@
       if(remembered){
         lat = Number(remembered.lat);
         lng = Number(remembered.lng);
-        toast("Used saved entry point");
+        toast("保存済み位置を使用しました");
       }else{
         const geo = await geocodeWithFallback(addressRaw);
         if(!geo){
@@ -1865,13 +1865,13 @@
       $("zip").value = "";
       $("name").focus();
 
-      if(!remembered) toast("Added");
+      if(!remembered) toast("追加しました");
     }catch(e){
       console.error(e);
       toast(`座標化に失敗しました。\n${e?.message || "通信/設定を確認"}`);
     }finally{
       $("addBtn").disabled = false;
-      $("addBtn").textContent = "+ Add";
+      $("addBtn").textContent = "＋追加";
     }
   }
 
@@ -1974,13 +1974,13 @@
 
   async function importCsvFile(file){
     if(!file){
-      toast("Please select a CSV file");
+      toast("CSVファイルを選択してください");
       return;
     }
 
     const originalBtnText = $("csvBtn").textContent;
     $("csvBtn").disabled = true;
-    $("csvBtn").textContent = "... Importing";
+    $("csvBtn").textContent = "... 取込中";
 
     try{
       let text = await file.text();
@@ -1995,7 +1995,7 @@
 
       const rows = parseCsvText(text);
       if(!rows.length){
-        toast("CSV is empty");
+        toast("CSVが空です");
         return;
       }
 
@@ -2034,15 +2034,15 @@
       }
 
       if(fail === 0){
-        toast(`CSV import complete ✅ ${success} added`);
+        toast(`CSV取込完了 ✅ ${success} 件追加`);
       }else{
-        console.warn("CSV import failed rows:", failedRows);
-        toast(`CSV import complete: success ${success} / failed ${fail}`);
+        console.warn("CSV取込に失敗しました rows:", failedRows);
+        toast(`CSV取込完了: 成功 ${success} / 失敗 ${fail}`);
       }
 
     }catch(e){
       console.error(e);
-      toast("CSV import failed");
+      toast("CSV取込に失敗しました");
     }finally{
       $("csvBtn").disabled = false;
       $("csvBtn").textContent = originalBtnText;
@@ -2064,10 +2064,10 @@
     if(becameDone && s.status === "done"){
       const next = getNextPendingStop();
       if(next){
-        toast("Starting navigation to the next stop");
+        toast("次の配達先へのナビを開始します");
         openNav(next.id);
       }else{
-        toast("All deliveries completed 🎉");
+        toast("すべての配達が完了しました 🎉");
       }
     }
   }
@@ -2124,7 +2124,7 @@
   function openMultiStopNav(){
     const pending = getPendingStopsForNavigation();
     if(pending.length === 0){
-      toast("No pending stops");
+      toast("未完了の配達先はありません");
       return;
     }
 
@@ -2166,7 +2166,7 @@
 
   function updateHeadingPill(){
     if(headingDeg == null){
-      hdgPill.textContent = "Heading: —";
+      hdgPill.textContent = "方位: —";
       return;
     }
     hdgPill.textContent = `Heading: ${Math.round(headingDeg)}°`;
@@ -2351,7 +2351,7 @@
 
   function startWatch(){
     if(!navigator.geolocation){
-      $("geoPill").textContent = "Location: Unsupported";
+      $("geoPill").textContent = "位置情報: 非対応";
       setGpsPill("GPS: Unsupported", true);
       toast("Location is not available");
       return;
@@ -2416,10 +2416,10 @@
 
   function initSpeech(){
     if(!SpeechRecognition){
-      $("speechPill").textContent = "Speech: Unsupported";
+      $("speechPill").textContent = "音声: 非対応";
       return;
     }
-    $("speechPill").textContent = "Speech: OK";
+    $("speechPill").textContent = "音声: OK";
     recog = new SpeechRecognition();
     recog.lang = "ja-JP";
     recog.interimResults = false;
@@ -2437,7 +2437,7 @@
       const text = ev.results[0][0].transcript || "";
       const cur = inputEl.value.trim();
       inputEl.value = cur ? (cur + " " + text) : text;
-      toast("Input added");
+      toast("Input 件追加");
     };
     recog.onerror = () => toast("Speech input failed (check permission/HTTPS)");
     recog.start();
@@ -2450,11 +2450,11 @@
     if(stops.length > 0) return;
 
     const sampleStops = [
-      { name: "Sample Stop 1", address: "Times Square, New York, NY, USA" },
-      { name: "Sample Stop 2", address: "350 5th Ave, New York, NY 10118, USA" },
-      { name: "Sample Stop 3", address: "Central Park South, New York, NY, USA" },
-      { name: "Sample Stop 4", address: "Brooklyn Bridge, New York, NY, USA" },
-      { name: "Sample Stop 5", address: "Wall Street, New York, NY, USA" }
+      { name: "サンプル配達先1", address: "Times Square, New York, NY, USA" },
+      { name: "サンプル配達先2", address: "350 5th Ave, New York, NY 10118, USA" },
+      { name: "サンプル配達先3", address: "Central Park South, New York, NY, USA" },
+      { name: "サンプル配達先4", address: "Brooklyn Bridge, New York, NY, USA" },
+      { name: "サンプル配達先5", address: "Wall Street, New York, NY, USA" }
     ];
 
     let success = 0;
@@ -2476,7 +2476,7 @@
       }
 
       localStorage.setItem(SAMPLE_DATA_KEY, "1");
-      toast(`Sample data loaded (${success} stops)`);
+      toast(`サンプルデータを読み込みました（${success} 件）`);
     }
   }
 
@@ -2485,7 +2485,7 @@
     try{
       await navigator.serviceWorker.register("./sw.js");
     }catch(e){
-      console.warn("SW register failed", e);
+      console.warn("SW登録失敗", e);
     }
   }
 
@@ -2547,10 +2547,10 @@
       const addr = await fetchAddressByZip(zip);
       const cur = $("addr").value.trim();
       $("addr").value = cur ? (addr + " " + cur) : addr;
-      toast("Address filled. Please enter street number/details.");
+      toast("住所を補完しました。番地などの詳細を入力してください。");
       $("addr").focus();
     }catch(e){
-      toast(e.message || "Postal code lookup failed");
+      toast(e.message || "郵便番号検索に失敗しました");
     }finally{
       $("zipBtn").disabled = false;
     }
@@ -2583,7 +2583,7 @@
       window.__requestCompassPermission = null;
     }
     startWatch();
-    toast("GPS monitoring started");
+    toast("GPS追跡を開始しました");
   });
   
   $("csvBtn").addEventListener("click", () => {
@@ -2617,13 +2617,13 @@
   redrawMarkers();
   renderList();
 
-  if(SpeechRecognition) $("speechPill").textContent = "Speech: OK";
-  else $("speechPill").textContent = "Speech: Unsupported";
+  if(SpeechRecognition) $("speechPill").textContent = "音声: OK";
+  else $("speechPill").textContent = "音声: 非対応";
 
-  if(navigator.geolocation) $("geoPill").textContent = "Location: Not Ready";
-  else $("geoPill").textContent = "Location: Unsupported";
+  if(navigator.geolocation) $("geoPill").textContent = "位置情報: 未取得";
+  else $("geoPill").textContent = "位置情報: 非対応";
 
-  setGpsPill("GPS: Idle");
+  setGpsPill("GPS: 待機中");
   updateHeadingPill();
 
   applyQueryToInputs();
@@ -2634,6 +2634,10 @@
 </script>
 </body>
 </html>
+
+
+
+
 
 
 
