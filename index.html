@@ -2474,15 +2474,33 @@
     }
   }
 
-  async function registerSW(){
-    if(!("serviceWorker" in navigator)) return;
-    try{
-      await navigator.serviceWorker.register("./sw.js");
-    }catch(e){
-      console.warn("SW登録失敗", e);
-    }
-  }
+  function registerSW(){
+  if(!("serviceWorker" in navigator)) return;
 
+  window.addEventListener("load", async () => {
+    try{
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      console.log("Service Worker registered:", reg);
+
+      // 更新検知
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if(newWorker.state === "installed"){
+            if(navigator.serviceWorker.controller){
+              console.log("新しいバージョンがあります");
+            }else{
+              console.log("初回キャッシュ完了");
+            }
+          }
+        };
+      };
+
+    }catch(e){
+      console.warn("SW register failed", e);
+    }
+  });
+}
     function hideOpening(){
     const el = $("opening");
     if(!el) return;
@@ -2625,6 +2643,28 @@
   initOpening();
   loadSampleData();
 })();
+</script>
+    
+<button id="installBtn" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999; padding:12px 20px; font-size:16px;">
+  アプリをホーム画面に追加
+</button>
+
+<script>
+let deferredPrompt;
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("installBtn").style.display = "block";
+});
+
+document.getElementById("installBtn").addEventListener("click", async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  console.log(choice.outcome);
+  deferredPrompt = null;
+});
 </script>
 </body>
 </html>
