@@ -598,6 +598,38 @@
 .dragHandle:active{
   cursor: grabbing;
 }
+    
+.install-btn{
+  display:none;
+  position:fixed;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
+  z-index:9999;
+  padding:14px 22px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg, rgba(35,49,87,.96), rgba(20,28,52,.96));
+  color:#ffffff;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:.02em;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+
+.install-btn:hover{
+  transform:translateX(-50%) translateY(-1px);
+}
+
+.install-btn:active{
+  transform:translateX(-50%) translateY(1px);
+}
+
+.install-icon{
+  margin-right:8px;
+}
 </style>
 </head>
 
@@ -2645,8 +2677,9 @@
 })();
 </script>
     
-<button id="installBtn" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:9999; padding:12px 20px; font-size:16px;">
-  アプリをホーム画面に追加
+<button id="installBtn" class="install-btn" style="display:none;">
+  <span class="install-icon">📲</span>
+  ホーム画面に追加
 </button>
 
 <script>
